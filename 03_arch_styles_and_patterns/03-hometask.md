@@ -30,3 +30,10 @@ Draw the architectural diagram of the solution as if you were designing it from 
 * 1-59 - The written answers to the ‘Self-check questions’ have been provided without significant issues.
 * 60-89 ­­- Task 1 has been completed without significant issues.
 * 90-100 - Task 2 has been completed without significant issues.
+
+---
+
+## Saved solution files
+
+- Written answer: [03-hometask-solution.md](./03-hometask-solution.md)
+- Diagram: [03-architecture-diagram.drawio](./images/03-architecture-diagram.drawio)
