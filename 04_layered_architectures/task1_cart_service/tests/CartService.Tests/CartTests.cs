@@ -7,7 +7,7 @@ public class CartTests
     [Fact]
     public void AddItem_WhenItemAlreadyExists_IncreasesQuantity()
     {
-        var cart = new Cart(Guid.NewGuid());
+        var cart = new Cart(Guid.NewGuid().ToString("N"));
         cart.AddItem(new CartItem(1, "Keyboard", null, 99.99m, 1));
 
         cart.AddItem(new CartItem(1, "Keyboard", null, 99.99m, 2));
@@ -19,7 +19,7 @@ public class CartTests
     [Fact]
     public void RemoveItem_WhenItemExists_RemovesItFromCart()
     {
-        var cart = new Cart(Guid.NewGuid());
+        var cart = new Cart(Guid.NewGuid().ToString("N"));
         cart.AddItem(new CartItem(1, "Keyboard", null, 99.99m, 1));
 
         var removed = cart.RemoveItem(1);

@@ -9,53 +9,58 @@ public sealed class CartService
         _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
     }
 
-    public async Task<IReadOnlyList<CartItem>> GetItemsAsync(Guid cartId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CartItem>> GetItemsAsync(string cartKey, CancellationToken cancellationToken = default)
     {
-        ValidateCartId(cartId);
+        ValidateCartKey(cartKey);
 
-        var cart = await _cartRepository.GetByIdAsync(cartId, cancellationToken);
+        var cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken);
         return cart?.GetItems() ?? Array.Empty<CartItem>();
     }
 
-    public async Task<IReadOnlyList<CartItem>> AddItemAsync(Guid cartId, CartItem item, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CartItem>> AddItemAsync(string cartKey, CartItem item, CancellationToken cancellationToken = default)
     {
-        ValidateCartId(cartId);
+        ValidateCartKey(cartKey);
         ArgumentNullException.ThrowIfNull(item);
 
-        var cart = await LoadOrCreateAsync(cartId, cancellationToken);
+        var cart = await LoadOrCreateAsync(cartKey, cancellationToken);
         cart.AddItem(item);
         await _cartRepository.UpsertAsync(cart, cancellationToken);
 
         return cart.GetItems();
     }
 
-    public async Task<IReadOnlyList<CartItem>> RemoveItemAsync(Guid cartId, int itemId, CancellationToken cancellationToken = default)
+    public async Task<bool> RemoveItemAsync(string cartKey, int itemId, CancellationToken cancellationToken = default)
     {
-        ValidateCartId(cartId);
+        ValidateCartKey(cartKey);
 
-        var cart = await _cartRepository.GetByIdAsync(cartId, cancellationToken);
+        var cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken);
         if (cart is null)
         {
-            return Array.Empty<CartItem>();
+            return false;
         }
 
-        cart.RemoveItem(itemId);
+        var removed = cart.RemoveItem(itemId);
+        if (!removed)
+        {
+            return false;
+        }
+
         await _cartRepository.UpsertAsync(cart, cancellationToken);
 
-        return cart.GetItems();
+        return true;
     }
 
-    private async Task<Cart> LoadOrCreateAsync(Guid cartId, CancellationToken cancellationToken)
+    private async Task<Cart> LoadOrCreateAsync(string cartKey, CancellationToken cancellationToken)
     {
-        var existingCart = await _cartRepository.GetByIdAsync(cartId, cancellationToken);
-        return existingCart ?? new Cart(cartId);
+        var existingCart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken);
+        return existingCart ?? new Cart(cartKey);
     }
 
-    private static void ValidateCartId(Guid cartId)
+    private static void ValidateCartKey(string cartKey)
     {
-        if (cartId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(cartKey))
         {
-            throw new ArgumentException("Cart id must not be empty.", nameof(cartId));
+            throw new ArgumentException("Cart key must not be empty.", nameof(cartKey));
         }
     }
 }
