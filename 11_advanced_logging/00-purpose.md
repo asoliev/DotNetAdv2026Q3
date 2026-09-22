@@ -1,0 +1,1 @@
+ The goal of this module is to introduce Serviceability and Observability NFRs while designing the distributed logging and tracing. Practical task includes the implementation of the distributed logging and tracing solutions for both Catalog and Cart service. 

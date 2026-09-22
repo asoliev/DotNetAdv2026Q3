@@ -1,0 +1,1 @@
+ The purpose of the module is to provide an overview of the types of application architecture styles and patterns. This module will provide explanation for the most used styles like Monolith, Microservices and Serverless architecture. The module also provides a task based on a real case, to think of the options to enhance the existing solution.

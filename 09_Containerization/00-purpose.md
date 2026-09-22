@@ -1,0 +1,1 @@
+ The goal of this module is to make an overview of containerization and orchestration and best practices, create and run containers using Docker and provide overview about such concepts like orchestration and virtualization.

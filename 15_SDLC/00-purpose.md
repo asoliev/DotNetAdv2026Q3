@@ -1,0 +1,1 @@
+ The goal of this module is to provide an overview of the software development life cycle (SDLC) and most used development methodologies. Go through the types and estimation techniques and apply this knowledge to practice by providing estimations for the task of 'Architectural Styles and Patterns' module.

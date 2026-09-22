@@ -1,0 +1,1 @@
+ The goal of the course is to provide an overview of the main code quality metrics and tools for maintaining the code at a proper quality level. Practical tasks include setting up quality gates for the style guide checks, static and dynamic code analyses.

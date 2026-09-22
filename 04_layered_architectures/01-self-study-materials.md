@@ -1,0 +1,16 @@
+_Please, study the following materials:_
+
+1.  [Layered Architecture / N-Layer Architecture](https://web.archive.org/web/20241113213446/https://www.oreilly.com/library/view/software-architecture-patterns/9781491971437/ch01.html) (Chapter 1 - Software Architecture Patterns by Mark Richards, 15m, reading)
+2.  [Clean architecture tutorial: Design for enterprise-scale apps](https://www.educative.io/blog/clean-architecture-tutorial) (15m, reading)
+3.  [Clean Architecture with ASP.NET Core 3.0 • Jason Taylor • GOTO 2019](https://www.youtube.com/watch?v=dK4Yb6-LxAk)
+    - [CleanArchitecture](https://github.com/jasontaylordev/CleanArchitecture) 
+4.  [Clean Architecture with ASP.NET Core 6](https://www.youtube.com/watch?v=lkmvnjypENw) (40m, video)
+5.  [Domain-Driven Design within Layered Architectures](https://archfirst.org/domain-driven-design-6-layered-architecture) (10m, reading)
+6.  [Clean Architecture Example & Breakdown](https://codeopinion.com/clean-architecture-example-breakdown/) (10m, reading)
+7.  [Comparison of Domain-Driven Design and Clean Architecture Concepts](https://khalilstemmler.com/articles/software-design-architecture/domain-driven-design-vs-clean-architecture/) (20m, reading)
+8. Software architecture antipatterns. Spaghetti Code (30m, reading)
+    - [10-most-common-anti-patterns-every-software-engineer-must-avoid](https://bariscimen.medium.com/10-most-common-anti-patterns-every-software-engineer-must-avoid-182091438c2b)
+9.  [The Logical vs the Physical: Layered Architecture](https://www.freekpaans.nl/2016/02/the-logical-vs-the-physical-business-rules/) (5m, reading)
+10. Dev testing In layered architectures (15 min, reading)
+    -  [Software testability](https://en.wikipedia.org/wiki/Software_testability) 
+    -  [Understanding the testing pyramid and trophy](https://subscription.packtpub.com/book/web-development/9781838642655/2/ch02lvl1sec08/understanding-the-testing-pyramid-and-trophy)

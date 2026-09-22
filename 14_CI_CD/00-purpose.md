@@ -1,0 +1,1 @@
+ The goal of this module is to provide an overview of the CI/CD principles, practices, and tools. We will also touch on a theory of branching and deployment strategies. The practical task will include the building of the CI/CD pipeline for the projects built on this course.

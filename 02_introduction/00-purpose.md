@@ -1,0 +1,1 @@
+The purpose of the module is to provide you with the basics of terminology, actors, components and the typical use-cases used in the goal project.
