@@ -14,10 +14,13 @@ The cart id is generated on the client side, and the service supports getting ca
 
 The persistence layer uses LiteDB so the cart can be stored without a relational database.
 
+The API also listens for RabbitMQ product change events and updates stored cart items when catalog data changes.
+
 ## Project structure notes
 
 - The business layer does not know anything about LiteDB.
 - The data-access layer depends on the business layer and only handles storage concerns.
+- The API hosts a RabbitMQ consumer that keeps cart contents aligned with catalog product updates.
 - The tests show that the design can be verified both as isolated business logic and as a persistence-backed flow.
 
 ## NFR notes
@@ -47,3 +50,5 @@ The design can be extended with limited impact if new requirements appear.
 ## Validation
 
 The solution was validated with `dotnet test` and the Task 1 test suite passed successfully.
+
+RabbitMQ must be running locally before exercising the cross-service messaging flow.

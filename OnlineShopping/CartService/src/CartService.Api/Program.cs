@@ -1,6 +1,7 @@
 using Asp.Versioning.ApiExplorer;
 using CartService.Bll;
 using CartService.Dal;
+using CartService.Api.Messaging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
@@ -9,6 +10,7 @@ var databasePath = Path.Combine(builder.Environment.ContentRootPath, "cart.db");
 
 builder.Services.AddSingleton<ICartRepository>(_ => new LiteDbCartRepository(databasePath));
 builder.Services.AddSingleton<CartService.Bll.CartService>();
+builder.Services.AddHostedService<RabbitMqCatalogEventConsumer>();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>

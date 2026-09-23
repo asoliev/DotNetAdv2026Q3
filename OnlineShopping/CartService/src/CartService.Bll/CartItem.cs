@@ -2,11 +2,11 @@ namespace CartService.Bll;
 
 public sealed class CartItem
 {
-    public CartItem(int id, string name, CartItemImage? image, decimal price, int quantity)
+    public CartItem(Guid id, string name, CartItemImage? image, decimal price, int quantity)
     {
-        if (id <= 0)
+        if (id == Guid.Empty)
         {
-            throw new ArgumentOutOfRangeException(nameof(id), "Item id must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(id), "Item id must not be empty.");
         }
 
         if (string.IsNullOrWhiteSpace(name))
@@ -31,7 +31,7 @@ public sealed class CartItem
         Quantity = quantity;
     }
 
-    public int Id { get; }
+    public Guid Id { get; }
 
     public string Name { get; }
 

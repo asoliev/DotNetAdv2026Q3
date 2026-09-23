@@ -25,6 +25,14 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
         return Task.FromResult(document is null ? null : MapToDomain(document));
     }
 
+    public Task<IReadOnlyList<Cart>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var carts = GetCollection().FindAll().Select(MapToDomain).ToList();
+        return Task.FromResult<IReadOnlyList<Cart>>(carts);
+    }
+
     public Task UpsertAsync(Cart cart, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(cart);

@@ -2,6 +2,7 @@ using Asp.Versioning.ApiExplorer;
 using CatalogService.Application;
 using CatalogService.Domain;
 using CatalogService.Infrastructure;
+using CatalogService.Api.Messaging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
@@ -12,6 +13,7 @@ builder.Services.AddSingleton<ICategoryRepository>(_ => new SqliteCategoryReposi
 builder.Services.AddSingleton<IProductRepository>(_ => new SqliteProductRepository(databasePath));
 builder.Services.AddSingleton<CategoryService>();
 builder.Services.AddSingleton<ProductService>();
+builder.Services.AddSingleton<IProductEventPublisher, RabbitMqProductEventPublisher>();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>

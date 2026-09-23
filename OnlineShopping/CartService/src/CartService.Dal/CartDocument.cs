@@ -12,7 +12,7 @@ public sealed class CartDocument
 
 public sealed class CartItemDocument
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
