@@ -3,6 +3,7 @@ using CatalogService.Application;
 using CatalogService.Domain;
 using CatalogService.Infrastructure;
 using CatalogService.Api.Messaging;
+using ShoppingAuth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
@@ -20,6 +21,8 @@ builder.Services.AddControllers()
     {
         options.InvalidModelStateResponseFactory = context => new BadRequestObjectResult(new ValidationProblemDetails(context.ModelState));
     });
+
+builder.Services.AddShoppingJwtAuthentication();
 
 builder.Services.AddApiVersioning(options =>
 {
@@ -53,6 +56,9 @@ app.UseSwaggerUI(options =>
         options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
     }
 });
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

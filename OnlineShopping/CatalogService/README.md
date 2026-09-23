@@ -17,6 +17,14 @@ The infrastructure layer uses SQLite so the persistence layer stays SQL-based wh
 
 The API also publishes product change events to RabbitMQ so the cart service can react to catalog updates.
 
+## Authentication and authorization
+
+This API uses the shared JWT identity setup from `OnlineShopping/IdentityService`.
+
+- `GET` endpoints are available to authenticated and anonymous callers.
+- `POST`, `PUT`, and `DELETE` endpoints require the `Manager` role.
+- Access tokens issued by the identity service are validated with the shared issuer, audience, and signing key.
+
 ## Project structure notes
 
 - Domain objects are independent from SQL and persistence details.

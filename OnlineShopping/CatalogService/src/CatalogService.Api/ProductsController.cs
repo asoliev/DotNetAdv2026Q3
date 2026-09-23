@@ -2,6 +2,8 @@ using Asp.Versioning;
 using CatalogService.Application;
 using CatalogService.Domain;
 using CatalogService.Api.Messaging;
+using ShoppingAuth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CatalogService.Api;
@@ -58,6 +60,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>
     /// Creates a product.
     /// </summary>
+    [Authorize(Roles = AuthRoles.Manager)]
     [HttpPost]
     public async Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -77,6 +80,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>
     /// Updates a product.
     /// </summary>
+    [Authorize(Roles = AuthRoles.Manager)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -96,6 +100,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>
     /// Deletes a product.
     /// </summary>
+    [Authorize(Roles = AuthRoles.Manager)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -118,7 +123,7 @@ public sealed class ProductsController : ControllerBase
         }
 
         var page = await _productService.GetPageAsync(categoryId, pageNumber, pageSize, cancellationToken);
-        return Ok(new PageResponse<ProductResponse>(page.Items.Select(Map).ToList(), page.TotalCount, page.PageNumber, page.PageSize));
+        return Ok(new PageResponse<ProductResponse>(page.Items.Select(MapToResponse).ToList(), page.TotalCount, page.PageNumber, page.PageSize));
     }
 
     private static ProductResponse MapToResponse(Product product)

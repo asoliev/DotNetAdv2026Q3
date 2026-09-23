@@ -1,5 +1,7 @@
 using Asp.Versioning;
 using CartService.Bll;
+using ShoppingAuth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CartService.Api;
@@ -7,6 +9,7 @@ namespace CartService.Api;
 /// <summary>
 /// Manages carts.
 /// </summary>
+[Authorize(Roles = AuthRoles.AnyServiceUser)]
 [ApiController]
 [ApiVersion("1.0")]
 [ApiVersion("2.0")]

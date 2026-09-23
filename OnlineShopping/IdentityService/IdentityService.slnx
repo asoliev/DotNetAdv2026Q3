@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IdentityService.Api/IdentityService.Api.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="../Shared/ShoppingAuth/ShoppingAuth.csproj" />
+  </Folder>
+</Solution>
