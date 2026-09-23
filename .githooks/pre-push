@@ -7,6 +7,7 @@ solution_root="$repo_root/OnlineShopping"
 empty_tree=$(git hash-object -t tree /dev/null)
 zero_sha=0000000000000000000000000000000000000000
 checked_pairs=
+checked_solutions=
 
 run_format_for_file() {
   solution=$1
@@ -22,6 +23,22 @@ run_format_for_file() {
   dotnet format "$solution" --verify-no-changes --include "$file"
 }
 
+queue_solution() {
+  solution=$1
+
+  case " $checked_solutions " in
+    *" $solution "*) return ;;
+  esac
+
+  checked_solutions="$checked_solutions $solution"
+}
+
+run_build_for_solution() {
+  solution=$1
+  echo "Running dotnet build for ${solution#$repo_root/}"
+  dotnet build "$solution"
+}
+
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ -n "${local_ref:-}" ] || continue
 
@@ -33,19 +50,29 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   for changed_file in $(git diff --name-only "$base_sha" "$local_sha" -- '*.cs'); do
     case "$changed_file" in
       OnlineShopping/CartService/*)
+        queue_solution "$solution_root/CartService/CartService.slnx"
         run_format_for_file "$solution_root/CartService/CartService.slnx" "$repo_root/$changed_file"
         ;;
       OnlineShopping/CatalogService/*)
+        queue_solution "$solution_root/CatalogService/CatalogService.slnx"
         run_format_for_file "$solution_root/CatalogService/CatalogService.slnx" "$repo_root/$changed_file"
         ;;
       OnlineShopping/IdentityService/*)
+        queue_solution "$solution_root/IdentityService/IdentityService.slnx"
         run_format_for_file "$solution_root/IdentityService/IdentityService.slnx" "$repo_root/$changed_file"
         ;;
       OnlineShopping/Shared/ShoppingAuth/*)
+        queue_solution "$solution_root/CartService/CartService.slnx"
+        queue_solution "$solution_root/CatalogService/CatalogService.slnx"
+        queue_solution "$solution_root/IdentityService/IdentityService.slnx"
         run_format_for_file "$solution_root/CartService/CartService.slnx" "$repo_root/$changed_file"
         run_format_for_file "$solution_root/CatalogService/CatalogService.slnx" "$repo_root/$changed_file"
         run_format_for_file "$solution_root/IdentityService/IdentityService.slnx" "$repo_root/$changed_file"
         ;;
     esac
+  done
+
+  for solution in $checked_solutions; do
+    run_build_for_solution "$solution"
   done
 done

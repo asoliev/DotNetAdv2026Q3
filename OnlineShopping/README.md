@@ -79,4 +79,4 @@ git config core.hooksPath .githooks
 chmod +x .githooks/pre-push
 ```
 
-The pre-push hook runs `dotnet format --verify-no-changes` for each `OnlineShopping/*.slnx` solution before a push is allowed.
+The pre-push hook runs `dotnet format --verify-no-changes` for the changed C# files and then runs `dotnet build` for the affected `OnlineShopping/*.slnx` solutions before a push is allowed.
