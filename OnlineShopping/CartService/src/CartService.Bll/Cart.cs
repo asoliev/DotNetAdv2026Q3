@@ -45,7 +45,7 @@ public sealed class Cart
         existingItem.IncreaseQuantity(item.Quantity);
     }
 
-    public bool RemoveItem(int itemId)
+    public bool RemoveItem(Guid itemId)
     {
         var existingItem = _items.FirstOrDefault(item => item.Id == itemId);
 
@@ -55,6 +55,21 @@ public sealed class Cart
         }
 
         _items.Remove(existingItem);
+        return true;
+    }
+
+    public bool UpdateItem(Guid itemId, string name, CartItemImage? image, decimal price)
+    {
+        var existingItem = _items.FirstOrDefault(item => item.Id == itemId);
+
+        if (existingItem is null)
+        {
+            return false;
+        }
+
+        var quantity = existingItem.Quantity;
+        var existingIndex = _items.IndexOf(existingItem);
+        _items[existingIndex] = new CartItem(itemId, name, image, price, quantity);
         return true;
     }
 }

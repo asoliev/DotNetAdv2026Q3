@@ -13,11 +13,12 @@ public class LiteDbCartRepositoryTests
         try
         {
             var expectedCartKey = Guid.NewGuid().ToString("N");
+            var itemId = Guid.NewGuid();
 
             using (var repository = new LiteDbCartRepository(databasePath))
             {
                 var cart = new Cart(expectedCartKey);
-                cart.AddItem(new CartItem(10, "Mouse", new CartItemImage("https://example.com/mouse.png", "Mouse"), 25.50m, 2));
+                cart.AddItem(new CartItem(itemId, "Mouse", new CartItemImage("https://example.com/mouse.png", "Mouse"), 25.50m, 2));
 
                 await repository.UpsertAsync(cart);
             }
@@ -29,7 +30,7 @@ public class LiteDbCartRepositoryTests
                 Assert.NotNull(cart);
                 Assert.Equal(expectedCartKey, cart!.Id);
                 var item = Assert.Single(cart.GetItems());
-                Assert.Equal(10, item.Id);
+                Assert.Equal(itemId, item.Id);
                 Assert.Equal("Mouse", item.Name);
                 Assert.Equal(2, item.Quantity);
                 Assert.Equal(25.50m, item.Price);

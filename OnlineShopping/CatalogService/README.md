@@ -15,11 +15,14 @@ The solution covers Category and Product entities, together with add, update, de
 
 The infrastructure layer uses SQLite so the persistence layer stays SQL-based while remaining easy to run locally.
 
+The API also publishes product change events to RabbitMQ so the cart service can react to catalog updates.
+
 ## Project structure notes
 
 - Domain objects are independent from SQL and persistence details.
 - Application services depend on repository interfaces, not on the database implementation.
 - Infrastructure implements those interfaces and owns the SQL mapping and connection logic.
+- The API publishes product events to RabbitMQ, keeping catalog write operations and cart synchronization decoupled.
 - Tests cover both domain/application behavior and the repository path.
 
 ## NFR notes
@@ -50,3 +53,5 @@ The architecture can be extended with predictable cost because the responsibilit
 ## Validation
 
 The solution was validated with `dotnet test` and the Task 2 test suite passed successfully.
+
+RabbitMQ must be running locally before exercising the cross-service messaging flow.

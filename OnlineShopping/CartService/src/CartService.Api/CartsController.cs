@@ -57,10 +57,10 @@ public sealed class CartsController : ControllerBase
     /// <summary>
     /// Deletes an item from the cart.
     /// </summary>
-    [HttpDelete("items/{itemId:int}")]
+    [HttpDelete("items/{itemId:guid}")]
     [MapToApiVersion("1.0")]
     [MapToApiVersion("2.0")]
-    public async Task<IActionResult> DeleteItem(string cartKey, int itemId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteItem(string cartKey, Guid itemId, CancellationToken cancellationToken)
     {
         var removed = await _cartService.RemoveItemAsync(cartKey, itemId, cancellationToken);
         return removed ? Ok() : NotFound();

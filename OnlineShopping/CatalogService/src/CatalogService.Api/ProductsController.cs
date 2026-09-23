@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using CatalogService.Application;
 using CatalogService.Domain;
+using CatalogService.Api.Messaging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CatalogService.Api;
@@ -16,12 +17,14 @@ public sealed class ProductsController : ControllerBase
     private readonly ProductService _productService;
     private readonly IProductRepository _productRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly IProductEventPublisher _productEventPublisher;
 
-    public ProductsController(ProductService productService, IProductRepository productRepository, ICategoryRepository categoryRepository)
+    public ProductsController(ProductService productService, IProductRepository productRepository, ICategoryRepository categoryRepository, IProductEventPublisher productEventPublisher)
     {
         _productService = productService;
         _productRepository = productRepository;
         _categoryRepository = categoryRepository;
+        _productEventPublisher = productEventPublisher;
     }
 
     /// <summary>
@@ -31,7 +34,7 @@ public sealed class ProductsController : ControllerBase
     public async Task<ActionResult<ProductResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var product = await _productRepository.GetByIdAsync(id, cancellationToken);
-        return product is null ? NotFound() : Ok(Map(product));
+        return product is null ? NotFound() : Ok(MapToResponse(product));
     }
 
     /// <summary>
@@ -62,7 +65,8 @@ public sealed class ProductsController : ControllerBase
         {
             var product = new Product(Guid.NewGuid(), request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
             await _productService.AddAsync(product, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, Map(product));
+            await _productEventPublisher.PublishUpsertedAsync(MapToMessage(product), cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, MapToResponse(product));
         }
         catch (InvalidOperationException exception)
         {
@@ -80,6 +84,7 @@ public sealed class ProductsController : ControllerBase
         {
             var product = new Product(id, request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
             await _productService.UpdateAsync(product, cancellationToken);
+            await _productEventPublisher.PublishUpsertedAsync(MapToMessage(product), cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException exception)
@@ -101,6 +106,7 @@ public sealed class ProductsController : ControllerBase
         }
 
         await _productService.DeleteAsync(id, cancellationToken);
+        await _productEventPublisher.PublishDeletedAsync(id, cancellationToken);
         return NoContent();
     }
 
@@ -115,14 +121,24 @@ public sealed class ProductsController : ControllerBase
         return Ok(new PageResponse<ProductResponse>(page.Items.Select(Map).ToList(), page.TotalCount, page.PageNumber, page.PageSize));
     }
 
-    private static ProductResponse Map(Product product)
+    private static ProductResponse MapToResponse(Product product)
     {
         return new ProductResponse(product.Id, product.Name, product.Description, MapImage(product.Image), product.CategoryId, product.Price, product.Amount);
+    }
+
+    private static ProductChangedMessage MapToMessage(Product product)
+    {
+        return new ProductChangedMessage(product.Id, product.Name, product.Description, MapProductImage(product.Image), product.CategoryId, product.Price, product.Amount);
     }
 
     private static ImageResponse? MapImage(ImageInfo? image)
     {
         return image is null ? null : new ImageResponse(image.Url, image.AltText);
+    }
+
+    private static ProductImageMessage? MapProductImage(ImageInfo? image)
+    {
+        return image is null ? null : new ProductImageMessage(image.Url, image.AltText);
     }
 
     private static ImageInfo? MapImage(ImageRequest? image)
