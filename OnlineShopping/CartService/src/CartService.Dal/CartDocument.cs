@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 using LiteDB;
 
 namespace CartService.Dal;
@@ -7,7 +9,7 @@ public sealed class CartDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
-    public List<CartItemDocument> Items { get; set; } = new();
+    public Collection<CartItemDocument> Items { get; } = new();
 }
 
 public sealed class CartItemDocument
@@ -25,7 +27,7 @@ public sealed class CartItemDocument
 
 public sealed class CartItemImageDocument
 {
-    public string Url { get; set; } = string.Empty;
+    public Uri Url { get; set; } = new("http://localhost");
 
     public string? AltText { get; set; }
 }

@@ -4,11 +4,11 @@ using ShoppingAuth;
 
 namespace IdentityService.Api.Models;
 
-internal sealed record LoginRequest(string UserName, string Password);
+public sealed record LoginRequest(string UserName, string Password);
 
-internal sealed record RefreshTokenRequest(string RefreshToken);
+public sealed record RefreshTokenRequest(string RefreshToken);
 
-internal sealed record AuthTokenResponse(
+public sealed record AuthTokenResponse(
     string AccessToken,
     string RefreshToken,
     DateTimeOffset AccessTokenExpiresAtUtc,
@@ -16,7 +16,7 @@ internal sealed record AuthTokenResponse(
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions);
 
-internal sealed record TokenVerificationResponse(
+public sealed record TokenVerificationResponse(
     string UserName,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions,
@@ -25,6 +25,8 @@ internal sealed record TokenVerificationResponse(
 {
     public static TokenVerificationResponse FromPrincipal(ClaimsPrincipal principal)
     {
+        ArgumentNullException.ThrowIfNull(principal);
+
         var roles = principal.FindAll(AuthClaimTypes.Role).Select(claim => claim.Value).Distinct().ToList();
         var permissions = principal.FindAll(AuthClaimTypes.Permission).Select(claim => claim.Value).Distinct().ToList();
 
@@ -42,9 +44,9 @@ internal sealed record TokenVerificationResponse(
     }
 }
 
-internal sealed record IdentityUser(string UserName, string Password, string DisplayName, IReadOnlyList<string> Roles);
+public sealed record IdentityUser(string UserName, string Password, string DisplayName, IReadOnlyList<string> Roles);
 
-internal sealed record RefreshTokenRecord(string UserName, string TokenHash, DateTimeOffset ExpiresAtUtc, bool IsRevoked = false)
+public sealed record RefreshTokenRecord(string UserName, string TokenHash, DateTimeOffset ExpiresAtUtc, bool IsRevoked = false)
 {
     public RefreshTokenRecord Revoke() => this with { IsRevoked = true };
 }

@@ -2,10 +2,10 @@ using CartService.Bll;
 
 namespace CartService.Tests;
 
-internal class CartTests
+public class CartTests
 {
     [Fact]
-    public void AddItem_WhenItemAlreadyExists_IncreasesQuantity()
+    public void AddItemWhenItemAlreadyExistsIncreasesQuantity()
     {
         var cart = new Cart(Guid.NewGuid().ToString("N"));
         cart.AddItem(new CartItem(Guid.NewGuid(), "Keyboard", null, 99.99m, 1));
@@ -17,7 +17,7 @@ internal class CartTests
     }
 
     [Fact]
-    public void RemoveItem_WhenItemExists_RemovesItFromCart()
+    public void RemoveItemWhenItemExistsRemovesItFromCart()
     {
         var cart = new Cart(Guid.NewGuid().ToString("N"));
         var itemId = Guid.NewGuid();
@@ -30,13 +30,13 @@ internal class CartTests
     }
 
     [Fact]
-    public void UpdateItem_WhenItemExists_UpdatesProductDetailsAndKeepsQuantity()
+    public void UpdateItemWhenItemExistsUpdatesProductDetailsAndKeepsQuantity()
     {
         var cart = new Cart(Guid.NewGuid().ToString("N"));
         var itemId = Guid.NewGuid();
         cart.AddItem(new CartItem(itemId, "Keyboard", null, 99.99m, 1));
 
-        var updated = cart.UpdateItem(itemId, "Mechanical Keyboard", new CartItemImage("https://example.com/keyboard.png", "Keyboard"), 129.99m);
+        var updated = cart.UpdateItem(itemId, "Mechanical Keyboard", new CartItemImage(new Uri("https://example.com/keyboard.png"), "Keyboard"), 129.99m);
 
         Assert.True(updated);
         CartItem item = Assert.Single(cart.GetItems());

@@ -9,14 +9,16 @@ using ShoppingAuth;
 
 namespace IdentityService.Api.Services;
 
-internal sealed class TokenService(IdentityStore identityStore)
+public sealed class TokenService(IdentityStore identityStore)
 {
     private readonly IdentityStore _identityStore = identityStore;
 
     public AuthTokenResponse CreateTokens(IdentityUser user)
     {
+        ArgumentNullException.ThrowIfNull(user);
+
         var roles = user.Roles.Distinct().ToList();
-        IReadOnlyList<string> permissions = GetPermissionsForRoles(roles);
+        List<string> permissions = GetPermissionsForRoles(roles);
         DateTimeOffset now = DateTimeOffset.UtcNow;
         DateTimeOffset accessTokenExpiresAt = now.Add(AuthDefaults.AccessTokenLifetime);
         RefreshTokenRecord refreshToken = _identityStore.IssueRefreshToken(user.UserName);
@@ -52,11 +54,13 @@ internal sealed class TokenService(IdentityStore identityStore)
 
     public AuthTokenResponse RefreshTokens(RefreshTokenRecord refreshToken)
     {
+        ArgumentNullException.ThrowIfNull(refreshToken);
+
         IdentityUser user = _identityStore.GetUser(refreshToken.UserName) ?? throw new InvalidOperationException("Unknown user for refresh token.");
         return CreateTokens(user);
     }
 
-    private static IReadOnlyList<string> GetPermissionsForRoles(IEnumerable<string> roles)
+    private static List<string> GetPermissionsForRoles(IEnumerable<string> roles)
     {
         var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

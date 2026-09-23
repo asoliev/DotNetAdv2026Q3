@@ -14,7 +14,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 var databasePath = Path.Combine(builder.Environment.ContentRootPath, "cart.db");
 
 builder.Services.AddSingleton<ICartRepository>(_ => new LiteDbCartRepository(databasePath));
-builder.Services.AddSingleton<CartService.Bll.CartService>();
+builder.Services.AddSingleton<CartManager>();
 builder.Services.AddHostedService<RabbitMqCatalogEventConsumer>();
 
 builder.Services.AddControllers()
@@ -52,9 +52,9 @@ IApiVersionDescriptionProvider versionProvider = app.Services.GetRequiredService
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    foreach (ApiVersionDescription description in versionProvider.ApiVersionDescriptions)
+    foreach (string groupName in versionProvider.ApiVersionDescriptions.Select(description => description.GroupName))
     {
-        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+        options.SwaggerEndpoint($"/swagger/{groupName}/swagger.json", groupName.ToUpperInvariant());
     }
 });
 

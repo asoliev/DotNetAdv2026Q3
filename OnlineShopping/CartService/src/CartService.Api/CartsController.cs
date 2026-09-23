@@ -17,9 +17,14 @@ namespace CartService.Api;
 [ApiVersion("1.0")]
 [ApiVersion("2.0")]
 [Route("api/v{version:apiVersion}/carts/{cartKey}")]
-internal sealed class CartsController(CartService.Bll.CartService cartService) : ControllerBase
+public sealed class CartsController : ControllerBase
 {
-    private readonly CartService.Bll.CartService _cartService = cartService;
+    private readonly CartManager _cartService;
+
+    public CartsController(CartManager cartService)
+    {
+        _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
+    }
 
     /// <summary>
     /// Returns cart information for version 1.
@@ -49,10 +54,11 @@ internal sealed class CartsController(CartService.Bll.CartService cartService) :
     [HttpPost("items")]
     [MapToApiVersion("1.0")]
     [MapToApiVersion("2.0")]
-    public async Task<ActionResult<CartResponse>> AddItem(string cartKey, [FromBody] CartItemRequest request, CancellationToken cancellationToken)
+    public Task<ActionResult<CartResponse>> AddItem(string cartKey, [FromBody] CartItemRequest request, CancellationToken cancellationToken)
     {
-        IReadOnlyList<CartItem> items = await _cartService.AddItemAsync(cartKey, Map(request), cancellationToken).ConfigureAwait(false);
-        return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
+        ArgumentNullException.ThrowIfNull(request);
+
+        return AddItemCoreAsync(cartKey, request, cancellationToken);
     }
 
     /// <summary>
@@ -75,4 +81,10 @@ internal sealed class CartsController(CartService.Bll.CartService cartService) :
             request.Image is null ? null : new CartItemImage(request.Image.Url, request.Image.AltText),
             request.Price,
             request.Quantity);
+
+    private async Task<ActionResult<CartResponse>> AddItemCoreAsync(string cartKey, CartItemRequest request, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<CartItem> items = await _cartService.AddItemAsync(cartKey, Map(request), cancellationToken).ConfigureAwait(false);
+        return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
+    }
 }

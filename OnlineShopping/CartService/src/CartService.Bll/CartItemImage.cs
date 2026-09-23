@@ -2,14 +2,11 @@ namespace CartService.Bll;
 
 public sealed class CartItemImage
 {
-    public CartItemImage(string url, string? altText)
+    public CartItemImage(Uri url, string? altText)
     {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            throw new ArgumentException("Image url is required.", nameof(url));
-        }
+        ArgumentNullException.ThrowIfNull(url);
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+        if (!url.IsAbsoluteUri)
         {
             throw new ArgumentException("Image url must be an absolute URL.", nameof(url));
         }
@@ -18,7 +15,7 @@ public sealed class CartItemImage
         AltText = string.IsNullOrWhiteSpace(altText) ? null : altText.Trim();
     }
 
-    public string Url { get; }
+    public Uri Url { get; }
 
     public string? AltText { get; }
 

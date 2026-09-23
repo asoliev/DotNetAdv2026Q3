@@ -8,7 +8,7 @@ namespace IdentityService.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-internal sealed class AuthController(IdentityStore identityStore, TokenService tokenService) : ControllerBase
+public sealed class AuthController(IdentityStore identityStore, TokenService tokenService) : ControllerBase
 {
     private readonly IdentityStore _identityStore = identityStore;
     private readonly TokenService _tokenService = tokenService;
@@ -16,6 +16,8 @@ internal sealed class AuthController(IdentityStore identityStore, TokenService t
     [HttpPost("token")]
     public ActionResult<AuthTokenResponse> CreateToken([FromBody] LoginRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         IdentityUser? user = _identityStore.ValidateCredentials(request.UserName, request.Password);
         if (user is null)
         {
@@ -29,6 +31,8 @@ internal sealed class AuthController(IdentityStore identityStore, TokenService t
     [HttpPost("refresh")]
     public ActionResult<AuthTokenResponse> RefreshToken([FromBody] RefreshTokenRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         RefreshTokenRecord? token = _identityStore.RedeemRefreshToken(request.RefreshToken);
         if (token is null)
         {

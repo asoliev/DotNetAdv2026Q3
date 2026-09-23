@@ -30,7 +30,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var carts = GetCollection().FindAll().Select(MapToDomain).ToList();
+        IReadOnlyList<Cart> carts = GetCollection().FindAll().Select(MapToDomain).ToList();
         return Task.FromResult<IReadOnlyList<Cart>>(carts);
     }
 
@@ -49,11 +49,20 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
 
     private ILiteCollection<CartDocument> GetCollection() => _database.GetCollection<CartDocument>("carts");
 
-    private static CartDocument MapToDocument(Cart cart) => new CartDocument
+    private static CartDocument MapToDocument(Cart cart)
     {
-        Id = cart.Id,
-        Items = cart.GetItems().Select(MapItemToDocument).ToList()
-    };
+        CartDocument document = new CartDocument
+        {
+            Id = cart.Id
+        };
+
+        foreach (CartItem item in cart.GetItems())
+        {
+            document.Items.Add(MapItemToDocument(item));
+        }
+
+        return document;
+    }
 
     private static Cart MapToDomain(CartDocument document) => new Cart(
             document.Id,

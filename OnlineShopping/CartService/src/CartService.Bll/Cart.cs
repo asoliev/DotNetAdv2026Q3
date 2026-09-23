@@ -17,6 +17,8 @@ public sealed class Cart
     public Cart(string key, IEnumerable<CartItem> items)
         : this(key)
     {
+        ArgumentNullException.ThrowIfNull(items);
+
         foreach (CartItem item in items)
         {
             AddItem(item);

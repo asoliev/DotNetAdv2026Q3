@@ -8,7 +8,7 @@ using ShoppingAuth;
 
 namespace IdentityService.Api.Services;
 
-internal sealed class IdentityStore
+public sealed class IdentityStore
 {
     private readonly ConcurrentDictionary<string, IdentityUser> _users = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, RefreshTokenRecord> _refreshTokens = new(StringComparer.Ordinal);
