@@ -12,9 +12,11 @@
     <ProjectReference Include="..\CatalogService.Application\CatalogService.Application.csproj" />
     <ProjectReference Include="..\CatalogService.Domain\CatalogService.Domain.csproj" />
     <ProjectReference Include="..\CatalogService.Infrastructure\CatalogService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ShoppingAuth\ShoppingAuth.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
     <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />

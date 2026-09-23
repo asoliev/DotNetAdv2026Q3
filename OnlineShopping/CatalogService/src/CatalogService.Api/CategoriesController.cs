@@ -1,6 +1,8 @@
 using Asp.Versioning;
 using CatalogService.Application;
 using CatalogService.Domain;
+using ShoppingAuth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CatalogService.Api;
@@ -45,6 +47,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>
     /// Creates a category.
     /// </summary>
+    [Authorize(Roles = AuthRoles.Manager)]
     [HttpPost]
     public async Task<ActionResult<CategoryResponse>> Create([FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -63,6 +66,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>
     /// Updates a category.
     /// </summary>
+    [Authorize(Roles = AuthRoles.Manager)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -81,6 +85,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>
     /// Deletes a category and its products.
     /// </summary>
+    [Authorize(Roles = AuthRoles.Manager)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

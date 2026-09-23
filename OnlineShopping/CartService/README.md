@@ -16,6 +16,14 @@ The persistence layer uses LiteDB so the cart can be stored without a relational
 
 The API also listens for RabbitMQ product change events and updates stored cart items when catalog data changes.
 
+## Authentication and authorization
+
+This API uses the same JWT access tokens as the Catalog service.
+
+- Both `Manager` and `Store customer` roles can call all cart endpoints.
+- The API logs bearer access-token details through custom middleware before the request reaches the controller.
+- Tokens are validated with the shared issuer, audience, and signing key from `OnlineShopping/IdentityService`.
+
 ## Project structure notes
 
 - The business layer does not know anything about LiteDB.

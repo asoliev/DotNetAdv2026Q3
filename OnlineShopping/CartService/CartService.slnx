@@ -7,4 +7,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/CartService.Tests/CartService.Tests.csproj" />
   </Folder>
+  <Folder Name="/shared/">
+    <Project Path="../Shared/ShoppingAuth/ShoppingAuth.csproj" />
+  </Folder>
 </Solution>
