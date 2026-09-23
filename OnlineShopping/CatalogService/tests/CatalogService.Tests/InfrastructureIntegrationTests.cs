@@ -2,7 +2,7 @@ using CatalogService.Domain;
 
 namespace CatalogService.Tests;
 
-public class InfrastructureIntegrationTests
+internal class InfrastructureIntegrationTests
 {
     [Fact]
     public async Task CategoryRepository_PersistsAndLoadsCategory()
@@ -15,14 +15,14 @@ public class InfrastructureIntegrationTests
             var parentId = Guid.NewGuid();
 
             var parentRepository = new global::CatalogService.Infrastructure.SqliteCategoryRepository(databasePath);
-            await parentRepository.AddAsync(new Category(parentId, "Electronics"));
+            await parentRepository.AddAsync(new Category(parentId, "Electronics")).ConfigureAwait(false);
 
             var repository = new global::CatalogService.Infrastructure.SqliteCategoryRepository(databasePath);
             var category = new Category(categoryId, "Accessories", new ImageInfo("https://example.com/accessories.png", "Accessories"), parentId);
 
-            await repository.AddAsync(category);
+            await repository.AddAsync(category).ConfigureAwait(false);
 
-            var loaded = await repository.GetByIdAsync(categoryId);
+            Category? loaded = await repository.GetByIdAsync(categoryId).ConfigureAwait(false);
 
             Assert.NotNull(loaded);
             Assert.Equal(categoryId, loaded!.Id);
@@ -51,14 +51,14 @@ public class InfrastructureIntegrationTests
             var productId = Guid.NewGuid();
 
             var categoryRepository = new global::CatalogService.Infrastructure.SqliteCategoryRepository(databasePath);
-            await categoryRepository.AddAsync(new Category(categoryId, "Phones"));
+            await categoryRepository.AddAsync(new Category(categoryId, "Phones")).ConfigureAwait(false);
 
             var repository = new global::CatalogService.Infrastructure.SqliteProductRepository(databasePath);
             var product = new Product(productId, "Smartphone", "<p>Android phone</p>", new ImageInfo("https://example.com/phone.png", "Phone"), categoryId, 499.99m, 5);
 
-            await repository.AddAsync(product);
+            await repository.AddAsync(product).ConfigureAwait(false);
 
-            var loaded = await repository.GetByIdAsync(productId);
+            Product? loaded = await repository.GetByIdAsync(productId).ConfigureAwait(false);
 
             Assert.NotNull(loaded);
             Assert.Equal(productId, loaded!.Id);

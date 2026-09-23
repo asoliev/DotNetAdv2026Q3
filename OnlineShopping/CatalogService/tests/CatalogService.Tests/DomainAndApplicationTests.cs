@@ -3,14 +3,14 @@ using CatalogService.Domain;
 
 namespace CatalogService.Tests;
 
-public class DomainAndApplicationTests
+internal class DomainAndApplicationTests
 {
     [Fact]
     public void Category_NameLongerThanFiftyCharacters_Throws()
     {
         var name = new string('a', 51);
 
-        var exception = Assert.Throws<ArgumentException>(() => new Category(Guid.NewGuid(), name));
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new Category(Guid.NewGuid(), name));
 
         Assert.Contains("50 characters", exception.Message);
     }
@@ -24,7 +24,7 @@ public class DomainAndApplicationTests
 
         var product = new Product(Guid.NewGuid(), "Phone", null, null, Guid.NewGuid(), 299.99m, 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(product));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(product)).ConfigureAwait(false);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class DomainAndApplicationTests
 
         var category = new Category(Guid.NewGuid(), "Accessories", null, parentId);
 
-        await service.AddAsync(category);
+        await service.AddAsync(category).ConfigureAwait(false);
 
         Assert.Single(categoryRepository.StoredCategories);
     }
@@ -51,7 +51,7 @@ public class DomainAndApplicationTests
             new Product(Guid.NewGuid(), "Monitor", null, null, Guid.NewGuid(), 199.99m, 1));
         var service = new ProductService(productRepository, new FakeCategoryRepository(categoryId));
 
-        var page = await service.GetPageAsync(categoryId, 1, 1);
+        PagedResult<Product> page = await service.GetPageAsync(categoryId, 1, 1).ConfigureAwait(false);
 
         Assert.Equal(2, page.TotalCount);
         Assert.Single(page.Items);
@@ -67,7 +67,7 @@ public class DomainAndApplicationTests
             new Product(Guid.NewGuid(), "Mouse", null, null, categoryId, 19.99m, 2));
         var service = new CategoryService(categoryRepository, productRepository);
 
-        await service.DeleteAsync(categoryId);
+        await service.DeleteAsync(categoryId).ConfigureAwait(false);
 
         Assert.Equal(categoryId, productRepository.DeletedCategoryIds.Single());
         Assert.Equal(categoryId, categoryRepository.DeletedCategoryIds.Single());
@@ -79,7 +79,7 @@ public class DomainAndApplicationTests
 
         public FakeCategoryRepository(params Guid[] existingCategoryIds)
         {
-            foreach (var id in existingCategoryIds)
+            foreach (Guid id in existingCategoryIds)
             {
                 _existingCategories.Add(id);
             }
@@ -87,17 +87,11 @@ public class DomainAndApplicationTests
 
         public List<Category> StoredCategories { get; } = new();
 
-    public List<Guid> DeletedCategoryIds { get; } = new();
+        public List<Guid> DeletedCategoryIds { get; } = new();
 
-        public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<Category?>(StoredCategories.FirstOrDefault(category => category.Id == id));
-        }
+        public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Category?>(StoredCategories.FirstOrDefault(category => category.Id == id));
 
-        public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<Category>>(StoredCategories.ToList());
-        }
+        public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Category>>(StoredCategories.ToList());
 
         public Task AddAsync(Category category, CancellationToken cancellationToken = default)
         {
@@ -106,10 +100,7 @@ public class DomainAndApplicationTests
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
+        public Task UpdateAsync(Category category, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
@@ -117,10 +108,7 @@ public class DomainAndApplicationTests
             return Task.CompletedTask;
         }
 
-        public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(_existingCategories.Contains(id));
-        }
+        public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(_existingCategories.Contains(id));
     }
 
     private sealed class FakeProductRepository : IProductRepository
@@ -132,19 +120,13 @@ public class DomainAndApplicationTests
             _products.AddRange(products);
         }
 
-        public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<Product?>(_products.FirstOrDefault(product => product.Id == id));
-        }
+        public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Product?>(_products.FirstOrDefault(product => product.Id == id));
 
-        public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<Product>>(_products.ToList());
-        }
+        public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Product>>(_products.ToList());
 
         public Task<PagedResult<Product>> GetPageAsync(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
         {
-            var query = _products.AsEnumerable();
+            IEnumerable<Product> query = _products.AsEnumerable();
             if (categoryId is not null)
             {
                 query = query.Where(product => product.CategoryId == categoryId.Value);
@@ -161,10 +143,7 @@ public class DomainAndApplicationTests
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
+        public Task UpdateAsync(Product product, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {

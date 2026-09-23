@@ -1,19 +1,14 @@
 namespace CartService.Bll;
 
-public sealed class CartService
+public sealed class CartService(ICartRepository cartRepository)
 {
-    private readonly ICartRepository _cartRepository;
-
-    public CartService(ICartRepository cartRepository)
-    {
-        _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
-    }
+    private readonly ICartRepository _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
 
     public async Task<IReadOnlyList<CartItem>> GetItemsAsync(string cartKey, CancellationToken cancellationToken = default)
     {
         ValidateCartKey(cartKey);
 
-        var cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken);
+        Cart? cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken).ConfigureAwait(false);
         return cart?.GetItems() ?? Array.Empty<CartItem>();
     }
 
@@ -22,9 +17,9 @@ public sealed class CartService
         ValidateCartKey(cartKey);
         ArgumentNullException.ThrowIfNull(item);
 
-        var cart = await LoadOrCreateAsync(cartKey, cancellationToken);
+        Cart cart = await LoadOrCreateAsync(cartKey, cancellationToken).ConfigureAwait(false);
         cart.AddItem(item);
-        await _cartRepository.UpsertAsync(cart, cancellationToken);
+        await _cartRepository.UpsertAsync(cart, cancellationToken).ConfigureAwait(false);
 
         return cart.GetItems();
     }
@@ -33,7 +28,7 @@ public sealed class CartService
     {
         ValidateCartKey(cartKey);
 
-        var cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken);
+        Cart? cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken).ConfigureAwait(false);
         if (cart is null)
         {
             return false;
@@ -45,7 +40,7 @@ public sealed class CartService
             return false;
         }
 
-        await _cartRepository.UpsertAsync(cart, cancellationToken);
+        await _cartRepository.UpsertAsync(cart, cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -67,15 +62,15 @@ public sealed class CartService
             throw new ArgumentOutOfRangeException(nameof(price), "Item price must be positive.");
         }
 
-        var carts = await _cartRepository.GetAllAsync(cancellationToken);
-        foreach (var cart in carts)
+        IReadOnlyList<Cart> carts = await _cartRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        foreach (Cart cart in carts)
         {
             if (!cart.UpdateItem(itemId, name, image, price))
             {
                 continue;
             }
 
-            await _cartRepository.UpsertAsync(cart, cancellationToken);
+            await _cartRepository.UpsertAsync(cart, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -86,21 +81,21 @@ public sealed class CartService
             throw new ArgumentOutOfRangeException(nameof(itemId), "Item id must not be empty.");
         }
 
-        var carts = await _cartRepository.GetAllAsync(cancellationToken);
-        foreach (var cart in carts)
+        IReadOnlyList<Cart> carts = await _cartRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        foreach (Cart cart in carts)
         {
             if (!cart.RemoveItem(itemId))
             {
                 continue;
             }
 
-            await _cartRepository.UpsertAsync(cart, cancellationToken);
+            await _cartRepository.UpsertAsync(cart, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async Task<Cart> LoadOrCreateAsync(string cartKey, CancellationToken cancellationToken)
     {
-        var existingCart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken);
+        Cart? existingCart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken).ConfigureAwait(false);
         return existingCart ?? new Cart(cartKey);
     }
 

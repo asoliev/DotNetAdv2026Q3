@@ -69,3 +69,14 @@ RabbitMQ messages are not called directly from HTTP clients.
 - Cart uses `CartService.Api` and exposes Swagger.
 - Identity uses `IdentityService.Api` and exposes Swagger.
 - Cart also logs parsed access-token details through custom middleware before controller execution.
+
+## Pre-push validation
+
+To make the optional `dotnet format` hook active for this repository, run this once from the repository root:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-push
+```
+
+The pre-push hook runs `dotnet format --verify-no-changes` for each `OnlineShopping/*.slnx` solution before a push is allowed.

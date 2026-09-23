@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+
 using RabbitMQ.Client;
 
 namespace CatalogService.Api.Messaging;
@@ -14,22 +15,16 @@ internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
         Password = "guest"
     };
 
-    public Task PublishUpsertedAsync(ProductChangedMessage message, CancellationToken cancellationToken = default)
-    {
-        return PublishAsync(RabbitMqTopology.ChangedRoutingKey, message, cancellationToken);
-    }
+    public Task PublishUpsertedAsync(ProductChangedMessage message, CancellationToken cancellationToken = default) => PublishAsync(RabbitMqTopology.ChangedRoutingKey, message, cancellationToken);
 
-    public Task PublishDeletedAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return PublishAsync(RabbitMqTopology.DeletedRoutingKey, new ProductDeletedMessage(id), cancellationToken);
-    }
+    public Task PublishDeletedAsync(Guid id, CancellationToken cancellationToken = default) => PublishAsync(RabbitMqTopology.DeletedRoutingKey, new ProductDeletedMessage(id), cancellationToken);
 
     private Task PublishAsync<TMessage>(string routingKey, TMessage message, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var connection = _connectionFactory.CreateConnection();
-        using var channel = connection.CreateModel();
+        using IConnection connection = _connectionFactory.CreateConnection();
+        using IModel channel = connection.CreateModel();
 
         channel.ExchangeDeclare(RabbitMqTopology.ExchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
         channel.ExchangeDeclare(RabbitMqTopology.RetryExchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
@@ -58,7 +53,7 @@ internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
         channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.DeletedRoutingKey);
 
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, JsonOptions));
-        var properties = channel.CreateBasicProperties();
+        IBasicProperties properties = channel.CreateBasicProperties();
         properties.Persistent = true;
         properties.ContentType = "application/json";
 

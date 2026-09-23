@@ -41,10 +41,7 @@ public sealed class CartItem
 
     public int Quantity { get; private set; }
 
-    public CartItem Copy()
-    {
-        return new CartItem(Id, Name, Image?.Copy(), Price, Quantity);
-    }
+    public CartItem Copy() => new CartItem(Id, Name, Image?.Copy(), Price, Quantity);
 
     public void IncreaseQuantity(int quantity)
     {

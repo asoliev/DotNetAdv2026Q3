@@ -1,13 +1,14 @@
-using ShoppingAuth;
 using System.Security.Claims;
+
+using ShoppingAuth;
 
 namespace IdentityService.Api.Models;
 
-public sealed record LoginRequest(string UserName, string Password);
+internal sealed record LoginRequest(string UserName, string Password);
 
-public sealed record RefreshTokenRequest(string RefreshToken);
+internal sealed record RefreshTokenRequest(string RefreshToken);
 
-public sealed record AuthTokenResponse(
+internal sealed record AuthTokenResponse(
     string AccessToken,
     string RefreshToken,
     DateTimeOffset AccessTokenExpiresAtUtc,
@@ -15,7 +16,7 @@ public sealed record AuthTokenResponse(
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions);
 
-public sealed record TokenVerificationResponse(
+internal sealed record TokenVerificationResponse(
     string UserName,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions,
@@ -41,9 +42,9 @@ public sealed record TokenVerificationResponse(
     }
 }
 
-public sealed record IdentityUser(string UserName, string Password, string DisplayName, IReadOnlyList<string> Roles);
+internal sealed record IdentityUser(string UserName, string Password, string DisplayName, IReadOnlyList<string> Roles);
 
-public sealed record RefreshTokenRecord(string UserName, string TokenHash, DateTimeOffset ExpiresAtUtc, bool IsRevoked = false)
+internal sealed record RefreshTokenRecord(string UserName, string TokenHash, DateTimeOffset ExpiresAtUtc, bool IsRevoked = false)
 {
     public RefreshTokenRecord Revoke() => this with { IsRevoked = true };
 }

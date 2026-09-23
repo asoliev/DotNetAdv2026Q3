@@ -1,8 +1,10 @@
 using IdentityService.Api.Services;
-using ShoppingAuth;
+
 using Microsoft.OpenApi.Models;
 
-var builder = WebApplication.CreateBuilder(args);
+using ShoppingAuth;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<IdentityStore>();
 builder.Services.AddSingleton<TokenService>();
@@ -39,7 +41,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();

@@ -1,0 +1,51 @@
+#!/bin/sh
+
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+solution_root="$repo_root/OnlineShopping"
+empty_tree=$(git hash-object -t tree /dev/null)
+zero_sha=0000000000000000000000000000000000000000
+checked_pairs=
+
+run_format_for_file() {
+  solution=$1
+  file=$2
+  pair="${solution}|${file}"
+
+  case " $checked_pairs " in
+    *" $pair "*) return ;;
+  esac
+
+  checked_pairs="$checked_pairs $pair"
+  echo "Running dotnet format for ${solution#$repo_root/} (${file#$repo_root/})"
+  dotnet format "$solution" --verify-no-changes --include "$file"
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "${local_ref:-}" ] || continue
+
+  base_sha=$remote_sha
+  if [ "$remote_sha" = "$zero_sha" ]; then
+    base_sha=$empty_tree
+  fi
+
+  for changed_file in $(git diff --name-only "$base_sha" "$local_sha" -- '*.cs'); do
+    case "$changed_file" in
+      OnlineShopping/CartService/*)
+        run_format_for_file "$solution_root/CartService/CartService.slnx" "$repo_root/$changed_file"
+        ;;
+      OnlineShopping/CatalogService/*)
+        run_format_for_file "$solution_root/CatalogService/CatalogService.slnx" "$repo_root/$changed_file"
+        ;;
+      OnlineShopping/IdentityService/*)
+        run_format_for_file "$solution_root/IdentityService/IdentityService.slnx" "$repo_root/$changed_file"
+        ;;
+      OnlineShopping/Shared/ShoppingAuth/*)
+        run_format_for_file "$solution_root/CartService/CartService.slnx" "$repo_root/$changed_file"
+        run_format_for_file "$solution_root/CatalogService/CatalogService.slnx" "$repo_root/$changed_file"
+        run_format_for_file "$solution_root/IdentityService/IdentityService.slnx" "$repo_root/$changed_file"
+        ;;
+    esac
+  done
+done

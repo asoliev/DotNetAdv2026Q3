@@ -2,16 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace CartService.Api.Middleware;
 
-public sealed class AccessTokenLoggingMiddleware
+internal sealed class AccessTokenLoggingMiddleware(RequestDelegate next, ILogger<AccessTokenLoggingMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<AccessTokenLoggingMiddleware> _logger;
-
-    public AccessTokenLoggingMiddleware(RequestDelegate next, ILogger<AccessTokenLoggingMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
+    private readonly RequestDelegate _next = next;
+    private readonly ILogger<AccessTokenLoggingMiddleware> _logger = logger;
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -21,7 +15,7 @@ public sealed class AccessTokenLoggingMiddleware
             var token = authorization[7..].Trim();
             try
             {
-                var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+                JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
                 _logger.LogInformation(
                     "Access token details: sub={Subject}, name={Name}, roles={Roles}, permissions={Permissions}, exp={ExpiresAt}, jti={Jti}",
                     jwt.Claims.FirstOrDefault(claim => claim.Type == "sub")?.Value,
@@ -37,6 +31,6 @@ public sealed class AccessTokenLoggingMiddleware
             }
         }
 
-        await _next(context);
+        await _next(context).ConfigureAwait(false);
     }
 }

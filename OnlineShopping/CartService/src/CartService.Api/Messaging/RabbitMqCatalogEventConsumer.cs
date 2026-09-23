@@ -1,14 +1,17 @@
 using System.Text.Json;
+
+using CartService.Bll;
+
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
 namespace CartService.Api.Messaging;
 
-internal sealed class RabbitMqCatalogEventConsumer : BackgroundService
+internal sealed class RabbitMqCatalogEventConsumer(CartService.Bll.CartService cartService, ILogger<RabbitMqCatalogEventConsumer> logger) : BackgroundService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly CartService.Bll.CartService _cartService;
-    private readonly ILogger<RabbitMqCatalogEventConsumer> _logger;
+    private readonly CartService.Bll.CartService _cartService = cartService;
+    private readonly ILogger<RabbitMqCatalogEventConsumer> _logger = logger;
     private readonly ConnectionFactory _connectionFactory = new()
     {
         HostName = "localhost",
@@ -17,16 +20,10 @@ internal sealed class RabbitMqCatalogEventConsumer : BackgroundService
         DispatchConsumersAsync = true
     };
 
-    public RabbitMqCatalogEventConsumer(CartService.Bll.CartService cartService, ILogger<RabbitMqCatalogEventConsumer> logger)
-    {
-        _cartService = cartService;
-        _logger = logger;
-    }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        using var channel = connection.CreateModel();
+        using IConnection connection = _connectionFactory.CreateConnection();
+        using IModel channel = connection.CreateModel();
 
         DeclareTopology(channel);
 
@@ -35,7 +32,7 @@ internal sealed class RabbitMqCatalogEventConsumer : BackgroundService
         {
             try
             {
-                await ProcessMessageAsync(channel, eventArgs, stoppingToken);
+                await ProcessMessageAsync(channel, eventArgs, stoppingToken).ConfigureAwait(false);
                 channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
             }
             catch (Exception exception)
@@ -49,7 +46,7 @@ internal sealed class RabbitMqCatalogEventConsumer : BackgroundService
 
         try
         {
-            await Task.Delay(Timeout.Infinite, stoppingToken);
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -62,17 +59,17 @@ internal sealed class RabbitMqCatalogEventConsumer : BackgroundService
 
         if (eventArgs.RoutingKey == RabbitMqTopology.DeletedRoutingKey)
         {
-            var deleted = JsonSerializer.Deserialize<ProductDeletedMessage>(eventArgs.Body.Span, JsonOptions)
+            ProductDeletedMessage deleted = JsonSerializer.Deserialize<ProductDeletedMessage>(eventArgs.Body.Span, JsonOptions)
                 ?? throw new InvalidOperationException("Product delete message is invalid.");
-            await _cartService.RemoveCatalogItemAsync(deleted.Id, cancellationToken);
+            await _cartService.RemoveCatalogItemAsync(deleted.Id, cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        var changed = JsonSerializer.Deserialize<ProductChangedMessage>(eventArgs.Body.Span, JsonOptions)
+        ProductChangedMessage changed = JsonSerializer.Deserialize<ProductChangedMessage>(eventArgs.Body.Span, JsonOptions)
             ?? throw new InvalidOperationException("Product change message is invalid.");
 
-        var image = changed.Image is null ? null : new CartService.Bll.CartItemImage(changed.Image.Url, changed.Image.AltText);
-        await _cartService.UpdateCatalogItemAsync(changed.Id, changed.Name, image, changed.Price, cancellationToken);
+        CartItemImage? image = changed.Image is null ? null : new CartService.Bll.CartItemImage(changed.Image.Url, changed.Image.AltText);
+        await _cartService.UpdateCatalogItemAsync(changed.Id, changed.Name, image, changed.Price, cancellationToken).ConfigureAwait(false);
     }
 
     private static void DeclareTopology(IModel channel)

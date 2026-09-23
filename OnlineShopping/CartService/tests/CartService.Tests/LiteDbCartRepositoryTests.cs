@@ -3,7 +3,7 @@ using CartService.Dal;
 
 namespace CartService.Tests;
 
-public class LiteDbCartRepositoryTests
+internal class LiteDbCartRepositoryTests
 {
     [Fact]
     public async Task UpsertAsync_ThenGetByIdAsync_ReturnsPersistedCart()
@@ -20,16 +20,16 @@ public class LiteDbCartRepositoryTests
                 var cart = new Cart(expectedCartKey);
                 cart.AddItem(new CartItem(itemId, "Mouse", new CartItemImage("https://example.com/mouse.png", "Mouse"), 25.50m, 2));
 
-                await repository.UpsertAsync(cart);
+                await repository.UpsertAsync(cart).ConfigureAwait(false);
             }
 
             using (var repository = new LiteDbCartRepository(databasePath))
             {
-                var cart = await repository.GetByIdAsync(expectedCartKey);
+                Cart? cart = await repository.GetByIdAsync(expectedCartKey).ConfigureAwait(false);
 
                 Assert.NotNull(cart);
                 Assert.Equal(expectedCartKey, cart!.Id);
-                var item = Assert.Single(cart.GetItems());
+                CartItem item = Assert.Single(cart.GetItems());
                 Assert.Equal(itemId, item.Id);
                 Assert.Equal("Mouse", item.Name);
                 Assert.Equal(2, item.Quantity);

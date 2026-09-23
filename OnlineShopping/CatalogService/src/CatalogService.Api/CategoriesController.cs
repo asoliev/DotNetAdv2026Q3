@@ -1,9 +1,12 @@
 using Asp.Versioning;
+
 using CatalogService.Application;
 using CatalogService.Domain;
-using ShoppingAuth;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using ShoppingAuth;
 
 namespace CatalogService.Api;
 
@@ -13,16 +16,10 @@ namespace CatalogService.Api;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/categories")]
-public sealed class CategoriesController : ControllerBase
+internal sealed class CategoriesController(CategoryService categoryService, ICategoryRepository categoryRepository) : ControllerBase
 {
-    private readonly CategoryService _categoryService;
-    private readonly ICategoryRepository _categoryRepository;
-
-    public CategoriesController(CategoryService categoryService, ICategoryRepository categoryRepository)
-    {
-        _categoryService = categoryService;
-        _categoryRepository = categoryRepository;
-    }
+    private readonly CategoryService _categoryService = categoryService;
+    private readonly ICategoryRepository _categoryRepository = categoryRepository;
 
     /// <summary>
     /// Returns all categories.
@@ -30,7 +27,7 @@ public sealed class CategoriesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CategoryResponse>>> GetAll(CancellationToken cancellationToken)
     {
-        var categories = await _categoryRepository.GetAllAsync(cancellationToken);
+        IReadOnlyList<Category> categories = await _categoryRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
         return Ok(categories.Select(Map).ToList());
     }
 
@@ -40,7 +37,7 @@ public sealed class CategoriesController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CategoryResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetByIdAsync(id, cancellationToken);
+        Category? category = await _categoryRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
         return category is null ? NotFound() : Ok(Map(category));
     }
 
@@ -54,7 +51,7 @@ public sealed class CategoriesController : ControllerBase
         try
         {
             var category = new Category(Guid.NewGuid(), request.Name, MapImage(request.Image), request.ParentCategoryId);
-            await _categoryService.AddAsync(category, cancellationToken);
+            await _categoryService.AddAsync(category, cancellationToken).ConfigureAwait(false);
             return CreatedAtAction(nameof(GetById), new { id = category.Id, version = "1" }, Map(category));
         }
         catch (InvalidOperationException exception)
@@ -73,7 +70,7 @@ public sealed class CategoriesController : ControllerBase
         try
         {
             var category = new Category(id, request.Name, MapImage(request.Image), request.ParentCategoryId);
-            await _categoryService.UpdateAsync(category, cancellationToken);
+            await _categoryService.UpdateAsync(category, cancellationToken).ConfigureAwait(false);
             return NoContent();
         }
         catch (InvalidOperationException exception)
@@ -89,28 +86,19 @@ public sealed class CategoriesController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetByIdAsync(id, cancellationToken);
+        Category? category = await _categoryRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
         if (category is null)
         {
             return NotFound();
         }
 
-        await _categoryService.DeleteAsync(id, cancellationToken);
+        await _categoryService.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
         return NoContent();
     }
 
-    private static CategoryResponse Map(Category category)
-    {
-        return new CategoryResponse(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
-    }
+    private static CategoryResponse Map(Category category) => new CategoryResponse(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
 
-    private static ImageResponse? MapImage(ImageInfo? image)
-    {
-        return image is null ? null : new ImageResponse(image.Url, image.AltText);
-    }
+    private static ImageResponse? MapImage(ImageInfo? image) => image is null ? null : new ImageResponse(image.Url, image.AltText);
 
-    private static ImageInfo? MapImage(ImageRequest? image)
-    {
-        return image is null ? null : new ImageInfo(image.Url, image.AltText);
-    }
+    private static ImageInfo? MapImage(ImageRequest? image) => image is null ? null : new ImageInfo(image.Url, image.AltText);
 }

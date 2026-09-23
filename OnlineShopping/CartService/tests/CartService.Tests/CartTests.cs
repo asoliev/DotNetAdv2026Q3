@@ -2,7 +2,7 @@ using CartService.Bll;
 
 namespace CartService.Tests;
 
-public class CartTests
+internal class CartTests
 {
     [Fact]
     public void AddItem_WhenItemAlreadyExists_IncreasesQuantity()
@@ -12,7 +12,7 @@ public class CartTests
 
         cart.AddItem(new CartItem(cart.GetItems().Single().Id, "Keyboard", null, 99.99m, 2));
 
-        var item = Assert.Single(cart.GetItems());
+        CartItem item = Assert.Single(cart.GetItems());
         Assert.Equal(3, item.Quantity);
     }
 
@@ -39,7 +39,7 @@ public class CartTests
         var updated = cart.UpdateItem(itemId, "Mechanical Keyboard", new CartItemImage("https://example.com/keyboard.png", "Keyboard"), 129.99m);
 
         Assert.True(updated);
-        var item = Assert.Single(cart.GetItems());
+        CartItem item = Assert.Single(cart.GetItems());
         Assert.Equal("Mechanical Keyboard", item.Name);
         Assert.Equal(129.99m, item.Price);
         Assert.Equal(1, item.Quantity);
