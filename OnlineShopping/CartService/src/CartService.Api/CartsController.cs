@@ -1,8 +1,11 @@
 using Asp.Versioning;
+
 using CartService.Bll;
-using ShoppingAuth;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using ShoppingAuth;
 
 namespace CartService.Api;
 
@@ -16,11 +19,11 @@ namespace CartService.Api;
 [Route("api/v{version:apiVersion}/carts/{cartKey}")]
 public sealed class CartsController : ControllerBase
 {
-    private readonly CartService.Bll.CartService _cartService;
+    private readonly CartManager _cartService;
 
-    public CartsController(CartService.Bll.CartService cartService)
+    public CartsController(CartManager cartService)
     {
-        _cartService = cartService;
+        _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
     }
 
     /// <summary>
@@ -30,7 +33,7 @@ public sealed class CartsController : ControllerBase
     [MapToApiVersion("1.0")]
     public async Task<ActionResult<CartResponse>> GetV1(string cartKey, CancellationToken cancellationToken)
     {
-        var items = await _cartService.GetItemsAsync(cartKey, cancellationToken);
+        IReadOnlyList<CartItem> items = await _cartService.GetItemsAsync(cartKey, cancellationToken).ConfigureAwait(false);
         return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
     }
 
@@ -41,7 +44,7 @@ public sealed class CartsController : ControllerBase
     [MapToApiVersion("2.0")]
     public async Task<ActionResult<IReadOnlyList<CartItemResponse>>> GetV2(string cartKey, CancellationToken cancellationToken)
     {
-        var items = await _cartService.GetItemsAsync(cartKey, cancellationToken);
+        IReadOnlyList<CartItem> items = await _cartService.GetItemsAsync(cartKey, cancellationToken).ConfigureAwait(false);
         return Ok(items.Select(Map).ToList());
     }
 
@@ -51,10 +54,11 @@ public sealed class CartsController : ControllerBase
     [HttpPost("items")]
     [MapToApiVersion("1.0")]
     [MapToApiVersion("2.0")]
-    public async Task<ActionResult<CartResponse>> AddItem(string cartKey, [FromBody] CartItemRequest request, CancellationToken cancellationToken)
+    public Task<ActionResult<CartResponse>> AddItem(string cartKey, [FromBody] CartItemRequest request, CancellationToken cancellationToken)
     {
-        var items = await _cartService.AddItemAsync(cartKey, Map(request), cancellationToken);
-        return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
+        ArgumentNullException.ThrowIfNull(request);
+
+        return AddItemCoreAsync(cartKey, request, cancellationToken);
     }
 
     /// <summary>
@@ -65,22 +69,22 @@ public sealed class CartsController : ControllerBase
     [MapToApiVersion("2.0")]
     public async Task<IActionResult> DeleteItem(string cartKey, Guid itemId, CancellationToken cancellationToken)
     {
-        var removed = await _cartService.RemoveItemAsync(cartKey, itemId, cancellationToken);
+        var removed = await _cartService.RemoveItemAsync(cartKey, itemId, cancellationToken).ConfigureAwait(false);
         return removed ? Ok() : NotFound();
     }
 
-    private static CartItemResponse Map(CartItem item)
-    {
-        return new CartItemResponse(item.Id, item.Name, item.Image is null ? null : new CartItemImageResponse(item.Image.Url, item.Image.AltText), item.Price, item.Quantity);
-    }
+    private static CartItemResponse Map(CartItem item) => new CartItemResponse(item.Id, item.Name, item.Image is null ? null : new CartItemImageResponse(item.Image.Url, item.Image.AltText), item.Price, item.Quantity);
 
-    private static CartItem Map(CartItemRequest request)
-    {
-        return new CartItem(
+    private static CartItem Map(CartItemRequest request) => new CartItem(
             request.Id,
             request.Name,
             request.Image is null ? null : new CartItemImage(request.Image.Url, request.Image.AltText),
             request.Price,
             request.Quantity);
+
+    private async Task<ActionResult<CartResponse>> AddItemCoreAsync(string cartKey, CartItemRequest request, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<CartItem> items = await _cartService.AddItemAsync(cartKey, Map(request), cancellationToken).ConfigureAwait(false);
+        return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
     }
 }

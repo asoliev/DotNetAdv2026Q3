@@ -1,27 +1,27 @@
-using IdentityService.Api.Models;
-using ShoppingAuth;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
+using IdentityService.Api.Models;
+
+using Microsoft.IdentityModel.Tokens;
+
+using ShoppingAuth;
+
 namespace IdentityService.Api.Services;
 
-public sealed class TokenService
+public sealed class TokenService(IdentityStore identityStore)
 {
-    private readonly IdentityStore _identityStore;
-
-    public TokenService(IdentityStore identityStore)
-    {
-        _identityStore = identityStore;
-    }
+    private readonly IdentityStore _identityStore = identityStore;
 
     public AuthTokenResponse CreateTokens(IdentityUser user)
     {
+        ArgumentNullException.ThrowIfNull(user);
+
         var roles = user.Roles.Distinct().ToList();
-        var permissions = GetPermissionsForRoles(roles);
-        var now = DateTimeOffset.UtcNow;
-        var accessTokenExpiresAt = now.Add(AuthDefaults.AccessTokenLifetime);
-        var refreshToken = _identityStore.IssueRefreshToken(user.UserName);
+        List<string> permissions = GetPermissionsForRoles(roles);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        DateTimeOffset accessTokenExpiresAt = now.Add(AuthDefaults.AccessTokenLifetime);
+        RefreshTokenRecord refreshToken = _identityStore.IssueRefreshToken(user.UserName);
 
         var claims = new List<Claim>
         {
@@ -54,11 +54,13 @@ public sealed class TokenService
 
     public AuthTokenResponse RefreshTokens(RefreshTokenRecord refreshToken)
     {
-        var user = _identityStore.GetUser(refreshToken.UserName) ?? throw new InvalidOperationException("Unknown user for refresh token.");
+        ArgumentNullException.ThrowIfNull(refreshToken);
+
+        IdentityUser user = _identityStore.GetUser(refreshToken.UserName) ?? throw new InvalidOperationException("Unknown user for refresh token.");
         return CreateTokens(user);
     }
 
-    private static IReadOnlyList<string> GetPermissionsForRoles(IEnumerable<string> roles)
+    private static List<string> GetPermissionsForRoles(IEnumerable<string> roles)
     {
         var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

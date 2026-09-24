@@ -17,7 +17,9 @@ public sealed class Cart
     public Cart(string key, IEnumerable<CartItem> items)
         : this(key)
     {
-        foreach (var item in items)
+        ArgumentNullException.ThrowIfNull(items);
+
+        foreach (CartItem item in items)
         {
             AddItem(item);
         }
@@ -25,16 +27,13 @@ public sealed class Cart
 
     public string Id { get; }
 
-    public IReadOnlyList<CartItem> GetItems()
-    {
-        return _items.Select(item => item.Copy()).ToList();
-    }
+    public IReadOnlyList<CartItem> GetItems() => _items.Select(item => item.Copy()).ToList();
 
     public void AddItem(CartItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        var existingItem = _items.FirstOrDefault(currentItem => currentItem.Id == item.Id);
+        CartItem? existingItem = _items.FirstOrDefault(currentItem => currentItem.Id == item.Id);
 
         if (existingItem is null)
         {
@@ -47,7 +46,7 @@ public sealed class Cart
 
     public bool RemoveItem(Guid itemId)
     {
-        var existingItem = _items.FirstOrDefault(item => item.Id == itemId);
+        CartItem? existingItem = _items.FirstOrDefault(item => item.Id == itemId);
 
         if (existingItem is null)
         {
@@ -60,7 +59,7 @@ public sealed class Cart
 
     public bool UpdateItem(Guid itemId, string name, CartItemImage? image, decimal price)
     {
-        var existingItem = _items.FirstOrDefault(item => item.Id == itemId);
+        CartItem? existingItem = _items.FirstOrDefault(item => item.Id == itemId);
 
         if (existingItem is null)
         {

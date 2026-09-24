@@ -1,13 +1,15 @@
 using Asp.Versioning.ApiExplorer;
-using CatalogService.Application;
-using CatalogService.Domain;
-using CatalogService.Infrastructure;
+
 using CatalogService.Api.Messaging;
-using ShoppingAuth;
+using CatalogService.Application;
+using CatalogService.Infrastructure;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
-var builder = WebApplication.CreateBuilder(args);
+using ShoppingAuth;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 var databasePath = Path.Combine(builder.Environment.ContentRootPath, "catalog.db");
 
 builder.Services.AddSingleton<ICategoryRepository>(_ => new SqliteCategoryRepository(databasePath));
@@ -45,13 +47,13 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog Service API", Version = "v1" });
 });
 
-var app = builder.Build();
-var versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+WebApplication app = builder.Build();
+IApiVersionDescriptionProvider versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    foreach (var description in versionProvider.ApiVersionDescriptions)
+    foreach (ApiVersionDescription description in versionProvider.ApiVersionDescriptions)
     {
         options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
     }

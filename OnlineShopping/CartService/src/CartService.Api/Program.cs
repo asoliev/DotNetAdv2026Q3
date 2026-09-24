@@ -1,17 +1,20 @@
 using Asp.Versioning.ApiExplorer;
-using CartService.Bll;
-using CartService.Dal;
+
 using CartService.Api.Messaging;
 using CartService.Api.Middleware;
-using ShoppingAuth;
+using CartService.Bll;
+using CartService.Dal;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
-var builder = WebApplication.CreateBuilder(args);
+using ShoppingAuth;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 var databasePath = Path.Combine(builder.Environment.ContentRootPath, "cart.db");
 
 builder.Services.AddSingleton<ICartRepository>(_ => new LiteDbCartRepository(databasePath));
-builder.Services.AddSingleton<CartService.Bll.CartService>();
+builder.Services.AddSingleton<CartManager>();
 builder.Services.AddHostedService<RabbitMqCatalogEventConsumer>();
 
 builder.Services.AddControllers()
@@ -43,15 +46,15 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v2", new OpenApiInfo { Title = "Cart Service API", Version = "v2" });
 });
 
-var app = builder.Build();
-var versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+WebApplication app = builder.Build();
+IApiVersionDescriptionProvider versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    foreach (var description in versionProvider.ApiVersionDescriptions)
+    foreach (string groupName in versionProvider.ApiVersionDescriptions.Select(description => description.GroupName))
     {
-        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+        options.SwaggerEndpoint($"/swagger/{groupName}/swagger.json", groupName.ToUpperInvariant());
     }
 });
 

@@ -1,4 +1,5 @@
 using CartService.Bll;
+
 using LiteDB;
 
 namespace CartService.Dal;
@@ -21,7 +22,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var document = GetCollection().FindById(cartKey);
+        CartDocument? document = GetCollection().FindById(cartKey);
         return Task.FromResult(document is null ? null : MapToDomain(document));
     }
 
@@ -29,7 +30,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var carts = GetCollection().FindAll().Select(MapToDomain).ToList();
+        IReadOnlyList<Cart> carts = GetCollection().FindAll().Select(MapToDomain).ToList();
         return Task.FromResult<IReadOnlyList<Cart>>(carts);
     }
 
@@ -38,59 +39,51 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
         ArgumentNullException.ThrowIfNull(cart);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var collection = GetCollection();
+        ILiteCollection<CartDocument> collection = GetCollection();
         collection.Upsert(MapToDocument(cart));
 
         return Task.CompletedTask;
     }
 
-    public void Dispose()
-    {
-        _database.Dispose();
-    }
+    public void Dispose() => _database.Dispose();
 
-    private ILiteCollection<CartDocument> GetCollection()
-    {
-        return _database.GetCollection<CartDocument>("carts");
-    }
+    private ILiteCollection<CartDocument> GetCollection() => _database.GetCollection<CartDocument>("carts");
 
     private static CartDocument MapToDocument(Cart cart)
     {
-        return new CartDocument
+        CartDocument document = new CartDocument
         {
-            Id = cart.Id,
-            Items = cart.GetItems().Select(MapItemToDocument).ToList()
+            Id = cart.Id
         };
+
+        foreach (CartItem item in cart.GetItems())
+        {
+            document.Items.Add(MapItemToDocument(item));
+        }
+
+        return document;
     }
 
-    private static Cart MapToDomain(CartDocument document)
-    {
-        return new Cart(
+    private static Cart MapToDomain(CartDocument document) => new Cart(
             document.Id,
             document.Items.Select(MapItemToDomain));
-    }
 
-    private static CartItemDocument MapItemToDocument(CartItem item)
+    private static CartItemDocument MapItemToDocument(CartItem item) => new CartItemDocument
     {
-        return new CartItemDocument
-        {
-            Id = item.Id,
-            Name = item.Name,
-            Image = item.Image is null
+        Id = item.Id,
+        Name = item.Name,
+        Image = item.Image is null
                 ? null
                 : new CartItemImageDocument
                 {
                     Url = item.Image.Url,
                     AltText = item.Image.AltText
                 },
-            Price = item.Price,
-            Quantity = item.Quantity
-        };
-    }
+        Price = item.Price,
+        Quantity = item.Quantity
+    };
 
-    private static CartItem MapItemToDomain(CartItemDocument document)
-    {
-        return new CartItem(
+    private static CartItem MapItemToDomain(CartItemDocument document) => new CartItem(
             document.Id,
             document.Name,
             document.Image is null
@@ -98,5 +91,4 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
                 : new CartItemImage(document.Image.Url, document.Image.AltText),
             document.Price,
             document.Quantity);
-    }
 }

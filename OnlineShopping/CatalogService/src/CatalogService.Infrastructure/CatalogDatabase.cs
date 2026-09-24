@@ -37,8 +37,8 @@ internal sealed class CatalogDatabase
 
     private void EnsureCreated()
     {
-        using var connection = CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS Categories (
                 Id TEXT PRIMARY KEY,

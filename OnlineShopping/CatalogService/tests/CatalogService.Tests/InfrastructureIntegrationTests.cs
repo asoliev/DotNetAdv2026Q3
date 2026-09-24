@@ -5,7 +5,7 @@ namespace CatalogService.Tests;
 public class InfrastructureIntegrationTests
 {
     [Fact]
-    public async Task CategoryRepository_PersistsAndLoadsCategory()
+    public async Task CategoryRepositoryPersistsAndLoadsCategory()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"catalog-{Guid.NewGuid():N}.db");
 
@@ -22,7 +22,7 @@ public class InfrastructureIntegrationTests
 
             await repository.AddAsync(category);
 
-            var loaded = await repository.GetByIdAsync(categoryId);
+            Category? loaded = await repository.GetByIdAsync(categoryId);
 
             Assert.NotNull(loaded);
             Assert.Equal(categoryId, loaded!.Id);
@@ -41,7 +41,7 @@ public class InfrastructureIntegrationTests
     }
 
     [Fact]
-    public async Task ProductRepository_PersistsAndLoadsProduct()
+    public async Task ProductRepositoryPersistsAndLoadsProduct()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"catalog-{Guid.NewGuid():N}.db");
 
@@ -58,7 +58,7 @@ public class InfrastructureIntegrationTests
 
             await repository.AddAsync(product);
 
-            var loaded = await repository.GetByIdAsync(productId);
+            Product? loaded = await repository.GetByIdAsync(productId);
 
             Assert.NotNull(loaded);
             Assert.Equal(productId, loaded!.Id);

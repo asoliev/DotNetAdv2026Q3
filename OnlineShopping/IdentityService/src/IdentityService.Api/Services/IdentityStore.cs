@@ -1,8 +1,10 @@
-using IdentityService.Api.Models;
-using ShoppingAuth;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+
+using IdentityService.Api.Models;
+
+using ShoppingAuth;
 
 namespace IdentityService.Api.Services;
 
@@ -20,12 +22,9 @@ public sealed class IdentityStore
         _users[customer.UserName] = customer;
     }
 
-    public IdentityUser? ValidateCredentials(string userName, string password)
-    {
-        return _users.TryGetValue(userName, out var user) && string.Equals(user.Password, password, StringComparison.Ordinal)
+    public IdentityUser? ValidateCredentials(string userName, string password) => _users.TryGetValue(userName, out IdentityUser? user) && string.Equals(user.Password, password, StringComparison.Ordinal)
             ? user
             : null;
-    }
 
     public RefreshTokenRecord IssueRefreshToken(string userName)
     {
@@ -38,7 +37,7 @@ public sealed class IdentityStore
     public RefreshTokenRecord? RedeemRefreshToken(string refreshToken)
     {
         var tokenHash = HashToken(refreshToken);
-        if (!_refreshTokens.TryGetValue(tokenHash, out var storedToken))
+        if (!_refreshTokens.TryGetValue(tokenHash, out RefreshTokenRecord? storedToken))
         {
             return null;
         }
@@ -53,10 +52,7 @@ public sealed class IdentityStore
         return storedToken with { TokenHash = refreshToken };
     }
 
-    public IdentityUser? GetUser(string userName)
-    {
-        return _users.TryGetValue(userName, out var user) ? user : null;
-    }
+    public IdentityUser? GetUser(string userName) => _users.TryGetValue(userName, out IdentityUser? user) ? user : null;
 
     private static string HashToken(string token)
     {

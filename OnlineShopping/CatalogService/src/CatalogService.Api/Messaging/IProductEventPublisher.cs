@@ -1,8 +1,6 @@
-using CatalogService.Domain;
-
 namespace CatalogService.Api.Messaging;
 
-public interface IProductEventPublisher
+internal interface IProductEventPublisher
 {
     Task PublishUpsertedAsync(ProductChangedMessage message, CancellationToken cancellationToken = default);
 

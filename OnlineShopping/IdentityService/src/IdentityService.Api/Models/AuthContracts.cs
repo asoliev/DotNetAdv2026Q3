@@ -1,5 +1,6 @@
-using ShoppingAuth;
 using System.Security.Claims;
+
+using ShoppingAuth;
 
 namespace IdentityService.Api.Models;
 
@@ -24,6 +25,8 @@ public sealed record TokenVerificationResponse(
 {
     public static TokenVerificationResponse FromPrincipal(ClaimsPrincipal principal)
     {
+        ArgumentNullException.ThrowIfNull(principal);
+
         var roles = principal.FindAll(AuthClaimTypes.Role).Select(claim => claim.Value).Distinct().ToList();
         var permissions = principal.FindAll(AuthClaimTypes.Permission).Select(claim => claim.Value).Distinct().ToList();
 

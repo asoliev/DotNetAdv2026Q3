@@ -1,27 +1,23 @@
 using CatalogService.Application;
 using CatalogService.Domain;
+
 using Microsoft.Data.Sqlite;
 
 namespace CatalogService.Infrastructure;
 
-public sealed class SqliteCategoryRepository : ICategoryRepository
+public sealed class SqliteCategoryRepository(string databasePath) : ICategoryRepository
 {
-    private readonly CatalogDatabase _database;
-
-    public SqliteCategoryRepository(string databasePath)
-    {
-        _database = new CatalogDatabase(databasePath);
-    }
+    private readonly CatalogDatabase _database = new CatalogDatabase(databasePath);
 
     public async Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT Id, Name, ImageUrl, ImageAltText, ParentCategoryId FROM Categories WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id.ToString());
 
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        if (!await reader.ReadAsync(cancellationToken))
+        using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             return null;
         }
@@ -32,12 +28,12 @@ public sealed class SqliteCategoryRepository : ICategoryRepository
     public async Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = new List<Category>();
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT Id, Name, ImageUrl, ImageAltText, ParentCategoryId FROM Categories ORDER BY Name";
 
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             items.Add(Map(reader));
         }
@@ -47,20 +43,20 @@ public sealed class SqliteCategoryRepository : ICategoryRepository
 
     public async Task AddAsync(Category category, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO Categories (Id, Name, ImageUrl, ImageAltText, ParentCategoryId)
             VALUES ($id, $name, $imageUrl, $imageAltText, $parentCategoryId);
             """;
         ApplyParameters(command, category);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             UPDATE Categories
             SET Name = $name,
@@ -70,26 +66,26 @@ public sealed class SqliteCategoryRepository : ICategoryRepository
             WHERE Id = $id;
             """;
         ApplyParameters(command, category);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Categories WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id.ToString());
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT 1 FROM Categories WHERE Id = $id LIMIT 1";
         command.Parameters.AddWithValue("$id", id.ToString());
 
-        var result = await command.ExecuteScalarAsync(cancellationToken);
+        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return result is not null;
     }
 

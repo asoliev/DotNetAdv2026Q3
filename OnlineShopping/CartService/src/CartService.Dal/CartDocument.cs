@@ -25,7 +25,7 @@ public sealed class CartItemDocument
 
 public sealed class CartItemImageDocument
 {
-    public string Url { get; set; } = string.Empty;
+    public Uri Url { get; set; } = new("http://localhost");
 
     public string? AltText { get; set; }
 }

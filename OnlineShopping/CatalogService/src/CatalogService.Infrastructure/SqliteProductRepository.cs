@@ -1,27 +1,23 @@
 using CatalogService.Application;
 using CatalogService.Domain;
+
 using Microsoft.Data.Sqlite;
 
 namespace CatalogService.Infrastructure;
 
-public sealed class SqliteProductRepository : IProductRepository
+public sealed class SqliteProductRepository(string databasePath) : IProductRepository
 {
-    private readonly CatalogDatabase _database;
-
-    public SqliteProductRepository(string databasePath)
-    {
-        _database = new CatalogDatabase(databasePath);
-    }
+    private readonly CatalogDatabase _database = new CatalogDatabase(databasePath);
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount FROM Products WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id.ToString());
 
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        if (!await reader.ReadAsync(cancellationToken))
+        using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             return null;
         }
@@ -32,12 +28,12 @@ public sealed class SqliteProductRepository : IProductRepository
     public async Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var items = new List<Product>();
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount FROM Products ORDER BY Name";
 
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             items.Add(Map(reader));
         }
@@ -50,10 +46,10 @@ public sealed class SqliteProductRepository : IProductRepository
         var offset = (pageNumber - 1) * pageSize;
         var filterClause = categoryId is null ? string.Empty : "WHERE CategoryId = $categoryId";
 
-        using var connection = _database.CreateConnection();
+        using SqliteConnection connection = _database.CreateConnection();
 
         int totalCount;
-        using (var countCommand = connection.CreateCommand())
+        using (SqliteCommand countCommand = connection.CreateCommand())
         {
             countCommand.CommandText = $"SELECT COUNT(*) FROM Products {filterClause}";
             if (categoryId is not null)
@@ -61,12 +57,12 @@ public sealed class SqliteProductRepository : IProductRepository
                 countCommand.Parameters.AddWithValue("$categoryId", categoryId.Value.ToString());
             }
 
-            var result = await countCommand.ExecuteScalarAsync(cancellationToken);
+            var result = await countCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             totalCount = Convert.ToInt32(result);
         }
 
         var items = new List<Product>();
-        using (var command = connection.CreateCommand())
+        using (SqliteCommand command = connection.CreateCommand())
         {
             command.CommandText = $"""
                 SELECT Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount
@@ -83,8 +79,8 @@ public sealed class SqliteProductRepository : IProductRepository
             command.Parameters.AddWithValue("$pageSize", pageSize);
             command.Parameters.AddWithValue("$offset", offset);
 
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+            using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 items.Add(Map(reader));
             }
@@ -95,20 +91,20 @@ public sealed class SqliteProductRepository : IProductRepository
 
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO Products (Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount)
             VALUES ($id, $name, $description, $imageUrl, $imageAltText, $categoryId, $price, $amount);
             """;
         ApplyParameters(command, product);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             UPDATE Products
             SET Name = $name,
@@ -121,25 +117,25 @@ public sealed class SqliteProductRepository : IProductRepository
             WHERE Id = $id;
             """;
         ApplyParameters(command, product);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Products WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id.ToString());
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
     {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
+        using SqliteConnection connection = _database.CreateConnection();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Products WHERE CategoryId = $categoryId";
         command.Parameters.AddWithValue("$categoryId", categoryId.ToString());
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static void ApplyParameters(SqliteCommand command, Product product)
@@ -158,7 +154,7 @@ public sealed class SqliteProductRepository : IProductRepository
     {
         var id = Guid.Parse(reader.GetString(0));
         var name = reader.GetString(1);
-        string? description = reader.IsDBNull(2) ? null : reader.GetString(2);
+        var description = reader.IsDBNull(2) ? null : reader.GetString(2);
         ImageInfo? image = null;
         if (!reader.IsDBNull(3))
         {

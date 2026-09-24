@@ -6,6 +6,6 @@ public sealed record CartResponse(string CartKey, IReadOnlyList<CartItemResponse
 
 public sealed record CartItemRequest(Guid Id, string Name, CartItemImageRequest? Image, decimal Price, int Quantity);
 
-public sealed record CartItemImageRequest(string Url, string? AltText);
+public sealed record CartItemImageRequest(Uri Url, string? AltText);
 
-public sealed record CartItemImageResponse(string Url, string? AltText);
+public sealed record CartItemImageResponse(Uri Url, string? AltText);
