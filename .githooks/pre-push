@@ -9,6 +9,21 @@ zero_sha=0000000000000000000000000000000000000000
 checked_pairs=
 checked_solutions=
 
+default_remote_ref() {
+  git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main
+}
+
+first_push_base() {
+  local_sha=$1
+  remote_ref=$2
+
+  if git rev-parse --verify "$remote_ref" >/dev/null 2>&1; then
+    git merge-base "$local_sha" "$remote_ref"
+  else
+    echo "$empty_tree"
+  fi
+}
+
 run_format_for_file() {
   solution=$1
   file=$2
@@ -44,7 +59,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 
   base_sha=$remote_sha
   if [ "$remote_sha" = "$zero_sha" ]; then
-    base_sha=$empty_tree
+    base_sha=$(first_push_base "$local_sha" "$(default_remote_ref)")
   fi
 
   for changed_file in $(git diff --name-only "$base_sha" "$local_sha" -- '*.cs'); do

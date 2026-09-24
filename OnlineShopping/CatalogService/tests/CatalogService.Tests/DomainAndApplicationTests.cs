@@ -3,20 +3,20 @@ using CatalogService.Domain;
 
 namespace CatalogService.Tests;
 
-internal class DomainAndApplicationTests
+public class DomainAndApplicationTests
 {
     [Fact]
-    public void Category_NameLongerThanFiftyCharacters_Throws()
+    public void CategoryNameLongerThanFiftyCharactersThrows()
     {
         var name = new string('a', 51);
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new Category(Guid.NewGuid(), name));
 
-        Assert.Contains("50 characters", exception.Message);
+        Assert.Contains("50 characters", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ProductService_AddAsync_WithMissingCategory_Throws()
+    public async Task ProductServiceAddAsyncWithMissingCategoryThrows()
     {
         var productRepository = new FakeProductRepository();
         var categoryRepository = new FakeCategoryRepository();
@@ -24,11 +24,11 @@ internal class DomainAndApplicationTests
 
         var product = new Product(Guid.NewGuid(), "Phone", null, null, Guid.NewGuid(), 299.99m, 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(product)).ConfigureAwait(false);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(product));
     }
 
     [Fact]
-    public async Task CategoryService_AddAsync_WithExistingParent_Succeeds()
+    public async Task CategoryServiceAddAsyncWithExistingParentSucceeds()
     {
         var parentId = Guid.NewGuid();
         var categoryRepository = new FakeCategoryRepository(parentId);
@@ -36,13 +36,13 @@ internal class DomainAndApplicationTests
 
         var category = new Category(Guid.NewGuid(), "Accessories", null, parentId);
 
-        await service.AddAsync(category).ConfigureAwait(false);
+        await service.AddAsync(category);
 
         Assert.Single(categoryRepository.StoredCategories);
     }
 
     [Fact]
-    public async Task ProductService_GetPageAsync_ReturnsFilteredPage()
+    public async Task ProductServiceGetPageAsyncReturnsFilteredPage()
     {
         var categoryId = Guid.NewGuid();
         var productRepository = new FakeProductRepository(
@@ -51,7 +51,7 @@ internal class DomainAndApplicationTests
             new Product(Guid.NewGuid(), "Monitor", null, null, Guid.NewGuid(), 199.99m, 1));
         var service = new ProductService(productRepository, new FakeCategoryRepository(categoryId));
 
-        PagedResult<Product> page = await service.GetPageAsync(categoryId, 1, 1).ConfigureAwait(false);
+        PagedResult<Product> page = await service.GetPageAsync(categoryId, 1, 1);
 
         Assert.Equal(2, page.TotalCount);
         Assert.Single(page.Items);
@@ -59,7 +59,7 @@ internal class DomainAndApplicationTests
     }
 
     [Fact]
-    public async Task CategoryService_DeleteAsync_RemovesRelatedProductsFirst()
+    public async Task CategoryServiceDeleteAsyncRemovesRelatedProductsFirst()
     {
         var categoryId = Guid.NewGuid();
         var categoryRepository = new FakeCategoryRepository(categoryId);
@@ -67,7 +67,7 @@ internal class DomainAndApplicationTests
             new Product(Guid.NewGuid(), "Mouse", null, null, categoryId, 19.99m, 2));
         var service = new CategoryService(categoryRepository, productRepository);
 
-        await service.DeleteAsync(categoryId).ConfigureAwait(false);
+        await service.DeleteAsync(categoryId);
 
         Assert.Equal(categoryId, productRepository.DeletedCategoryIds.Single());
         Assert.Equal(categoryId, categoryRepository.DeletedCategoryIds.Single());

@@ -34,3 +34,5 @@ export SONAR_TOKEN=<your-token>
 ```
 
 Repeat the same pattern for `CatalogService` and `IdentityService` if you want separate SonarQube projects.
+
+The helper imports Cobertura coverage from `tests/**/TestResults/**/coverage.cobertura.xml` when a solution has a `tests/` folder. Coverage is a SonarQube metric that can fail the quality gate; it is not counted as a separate issue type.
