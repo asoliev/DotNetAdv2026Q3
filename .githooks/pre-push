@@ -50,7 +50,7 @@ run_format_for_solution() {
   solution=$1
   key=$2
   eval "files=\$files_${key}"
-  [ -n "$files" ] || return
+  [ -n "$files" ] || return 0
 
   # Build --include args
   include_args=""
@@ -63,9 +63,25 @@ run_format_for_solution() {
   dotnet format "$solution" --verify-no-changes $include_args
 }
 
+seed_bin_from_obj() {
+  solution_dir=$(dirname "$1")
+  # macOS 15 com.apple.provenance prevents .NET File.Copy from obj→bin;
+  # shell cp works, so pre-seed bin with current obj outputs so the
+  # incremental build skips the copy step entirely.
+  find "$solution_dir" -path "*/obj/*/net*/*.dll" -o \
+                       -path "*/obj/*/net*/*.exe" 2>/dev/null | while IFS= read -r src; do
+    dest="${src/\/obj\//\/bin\/}"
+    dest_dir=$(dirname "$dest")
+    mkdir -p "$dest_dir"
+    cp -f "$src" "$dest" 2>/dev/null || true
+    touch "$dest" 2>/dev/null || true
+  done
+}
+
 run_build_for_solution() {
   solution=$1
   echo "Running dotnet build for ${solution#$repo_root/}"
+  seed_bin_from_obj "$solution"
   dotnet build "$solution"
 }
 
