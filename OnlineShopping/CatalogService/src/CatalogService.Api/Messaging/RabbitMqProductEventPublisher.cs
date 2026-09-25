@@ -8,12 +8,17 @@ namespace CatalogService.Api.Messaging;
 internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly ConnectionFactory _connectionFactory = new()
+    private readonly ConnectionFactory _connectionFactory;
+
+    public RabbitMqProductEventPublisher(IConfiguration configuration)
     {
-        HostName = "localhost",
-        UserName = "guest",
-        Password = "guest"
-    };
+        _connectionFactory = new ConnectionFactory
+        {
+            HostName = configuration["RabbitMq:Host"] ?? "localhost",
+            UserName = configuration["RabbitMq:Username"] ?? "guest",
+            Password = configuration["RabbitMq:Password"] ?? "guest"
+        };
+    }
 
     public Task PublishUpsertedAsync(ProductChangedMessage message, CancellationToken cancellationToken = default) => PublishAsync(RabbitMqTopology.ChangedRoutingKey, message, cancellationToken);
 
