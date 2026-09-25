@@ -1,7 +1,7 @@
 # OnlineShopping — Package Upgrade Report
 
 **Date:** 2026-09-25
-**Branch:** `module10_api_gateway`
+**Branch:** `update_packages` (commit `3a0a403`)
 **Scope:** all 12 projects under `OnlineShopping/` (IdentityService, CatalogService, CartService, Shared/ShoppingAuth), `net10.0`
 
 ## Result
@@ -137,9 +137,66 @@ It starts Identity, Catalog and Cart against RabbitMQ and checks:
 5. **Product update in Catalog → RabbitMQ → the cart item's name and price are updated in Cart.**
 6. **Product delete in Catalog → RabbitMQ → the item is removed from the cart.**
 
+## Full endpoint verification (after the upgrade commit `3a0a403`)
+
+The smoke test above covered only part of the API. I also ran a full-coverage script that calls **every endpoint** of all 3 services, including negative, auth and validation cases. It asserts the status code or value for **110 checks**.
+
+I ran it three times:
+- on the **original code** (commit `dbd5f92`, in a separate git worktree);
+- on the **upgraded code** with local `dotnet run` and RabbitMQ;
+- against the **docker-compose stack** built from the upgraded code.
+
+| Service | Endpoints called | Cases covered |
+|---|---|---|
+| Identity | `POST /api/auth/token`, `POST /api/auth/refresh`, `GET /api/auth/verify` | manager/customer login, roles and permissions, wrong password or unknown user → 401, missing body → 400, verify with valid/anonymous/garbage/tampered-signature/tampered-payload tokens, refresh rotation, reuse of a revoked refresh token → 401, invalid refresh token → 401, refreshed access token accepted by Identity and Catalog |
+| Catalog – categories | `GET`, `GET {id}`, `POST`, `PUT {id}`, `DELETE {id}` | anonymous → 401, customer → 403 (on POST, PUT and DELETE), create with image, child category with parent, unknown parent → 400, missing body → 400, `Location` header, GET missing/non-guid → 404, update and read back, delete then delete again → 404, `api-supported-versions`, unsupported version → 404 |
+| Catalog – products | `GET {id}`, `GET ?categoryId&pageNumber&pageSize`, `GET categories/{id}/products`, `POST`, `PUT {id}`, `DELETE {id}` | 401/403, create with image, unknown category → 400, missing body → 400, paging (counts, page 2 of size 2), category filter, unknown category → 404, route-based category listing and paging, update with unknown category → 400, delete missing → 404, **category delete cascades to its products** |
+| Cart | `GET v1`, `GET v2`, `POST items` (v1 and v2), `DELETE items/{id}` (v1 and v2) | anonymous or garbage token → 401, manager and customer both allowed, empty cart, add with image, merge on re-add (quantity 2+3=5), missing body → 400, v1 object vs v2 array shape, `api-supported-versions: 1.0, 2.0`, v3 → 404, delete → 200, delete again → 404, non-guid → 404 |
+| RabbitMQ | Catalog → Cart | product update changes the cart item's name, price and image and **keeps the quantity**; product delete removes the item from the cart; queues are empty afterwards |
+| Swagger | 4 `swagger.json` documents + 3 Swagger UIs | every UI asset (`swagger-ui-bundle.js`, `index.css`, …) returns 200, and Cart UI lists V1 and V2 |
+
+**Results**
+
+| Run | Result |
+|---|---|
+| Original code (local) | 110 / 110 |
+| **Upgraded code (local)** | **110 / 110** |
+| **Upgraded code (docker-compose)** | 109 / 110. The only failure is the unfiltered product count: 5 instead of 4, because the existing "Laptop Pro" product in the compose volume is included. This is not a regression. |
+
+**Response parity:** I diffed the normalized responses (GUIDs, JWTs, timestamps and trace IDs masked) between the original and upgraded runs. **97 of 110 lines are identical.** The 13 differences are expected:
+- a random GUID in the `Location` check;
+- the source path inside the Development stack traces of the 500 responses (listed below);
+- `openapi 3.0.1 → 3.0.4` in the 4 swagger documents;
+- the newer Swagger UI HTML bundle.
+
+**Existing behavior, the same before and after:** domain validation errors are not handled in the controllers and return **500** instead of 400:
+- empty category name;
+- negative product price;
+- `pageSize=101` / `pageNumber=0`;
+- cart quantity 0;
+- relative cart image URL.
+
+The test records these for parity only; this upgrade doesn't change them. A fix would be to catch `ArgumentException` in the controllers, or to add a ProblemDetails exception handler.
+
+I cleaned up all test data. The existing "Electronics" / "Laptop Pro" data in the compose volumes was left untouched.
+
+## What is still not on the latest version
+
+**Direct NuGet packages:** all are at their latest. `--vulnerable --include-transitive` and `--deprecated` report none in every solution.
+
+**Transitive packages** (brought in by other packages; left on purpose):
+
+| Package | Resolved | Latest | Why not pinned |
+|---|---|---|---|
+| Microsoft.OpenApi | 2.7.5 | 3.10.2 | Swashbuckle 10 is built against OpenApi 2.x, and 3.x is a breaking major version |
+| SQLitePCLRaw.* | 2.1.12 | 3.x | comes from `Microsoft.Data.Sqlite 10.0.12` (latest); pinning a new major under it isn't supported |
+| Microsoft.IdentityModel.* / System.IdentityModel.Tokens.Jwt | 8.19.2 | 8.23.0 | comes from JwtBearer 10.0.12; minor updates with no known vulnerabilities, so they could be pinned but it isn't needed |
+| Asp.Versioning.Http | 10.2.1 | 10.2.3 | comes from Asp.Versioning.Mvc 10.2.1, which is the latest Mvc release |
+| Microsoft.Bcl.Cryptography, ApiDescription.Server, Microsoft.Testing.*, ApplicationInsights, Bcl.AsyncInterfaces | older patch or minor | newer | come from the ASP.NET / test SDK packages; not used directly |
+
 ## Notes / follow-ups (not changed)
 
-- **Local .NET SDK is 10.0.101.** The Docker images use the floating `sdk:10.0` / `aspnet:10.0` tags and already get the latest patch. Consider updating the local SDK to match the 10.0.12 runtime.
+- **Local .NET SDK is 10.0.101, with runtime 10.0.1.** This is 11 runtime patches behind 10.0.12, which the NuGet packages target. It affects only local `dotnet run`/`dotnet test`. The Docker images use the floating `sdk:10.0` / `aspnet:10.0` tags and get the latest patch on every build. Consider installing the latest 10.0 SDK locally.
 - **`rabbitmq:3-management` in `docker-compose.yml`.** RabbitMQ 4.x is available, and 3.x is getting close to end of support. The v7 client supports RabbitMQ 4, but I didn't change this because it's an infrastructure change worth testing separately.
 - **Microsoft.Testing.Platform:** the test projects are explicitly opted out (`IsTestingPlatformApplication=false`). To move to MTP later:
   - add `global.json` → `"test": { "runner": "Microsoft.Testing.Platform" }`;
@@ -171,4 +228,4 @@ CartService/tests/CartService.Tests/CartManagerTests.cs
 CartService/tests/CartService.Tests/LiteDbCartRepositoryTests.cs
 ```
 
-17 files, +145 / −117 lines. Nothing has been committed.
+17 files, +145 / −117 lines. These are committed in `3a0a403`; the full-verification section of this report is a later, uncommitted edit.
