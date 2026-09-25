@@ -6,7 +6,7 @@ using CartService.Bll;
 using CartService.Dal;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 using ShoppingAuth;
 
@@ -29,7 +29,7 @@ builder.Services.AddShoppingJwtAuthentication();
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ApiVersionReader = new Asp.Versioning.UrlSegmentApiVersionReader();
     options.ReportApiVersions = true;
 })
 .AddMvc()
@@ -53,7 +53,7 @@ IApiVersionDescriptionProvider versionProvider = app.Services.GetRequiredService
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    foreach (string groupName in versionProvider.ApiVersionDescriptions.Select(description => description.GroupName))
+    foreach (var groupName in versionProvider.ApiVersionDescriptions.Select(description => description.GroupName))
     {
         options.SwaggerEndpoint($"/swagger/{groupName}/swagger.json", groupName.ToUpperInvariant());
     }

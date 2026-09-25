@@ -5,7 +5,7 @@ using CatalogService.Application;
 using CatalogService.Infrastructure;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 using ShoppingAuth;
 
@@ -30,7 +30,7 @@ builder.Services.AddShoppingJwtAuthentication();
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ApiVersionReader = new Asp.Versioning.UrlSegmentApiVersionReader();
     options.ReportApiVersions = true;
 })
 .AddMvc()

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using CartService.Bll;
@@ -23,44 +24,45 @@ public sealed partial class RabbitMqCatalogEventConsumer : BackgroundService
         {
             HostName = configuration["RabbitMq:Host"] ?? "localhost",
             UserName = configuration["RabbitMq:Username"] ?? "guest",
-            Password = configuration["RabbitMq:Password"] ?? "guest",
-            DispatchConsumersAsync = true
+            Password = configuration["RabbitMq:Password"] ?? "guest"
         };
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using IConnection connection = _connectionFactory.CreateConnection();
-        using IModel channel = connection.CreateModel();
+        IConnection connection = await _connectionFactory.CreateConnectionAsync(stoppingToken).ConfigureAwait(false);
+        await using ConfiguredAsyncDisposable connectionScope = connection.ConfigureAwait(false);
+        IChannel channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
+        await using ConfiguredAsyncDisposable channelScope = channel.ConfigureAwait(false);
 
-        DeclareTopology(channel);
+        await DeclareTopologyAsync(channel, stoppingToken).ConfigureAwait(false);
 
         AsyncEventingBasicConsumer consumer = new(channel);
-        consumer.Received += async (_, eventArgs) =>
+        consumer.ReceivedAsync += async (_, eventArgs) =>
         {
             try
             {
                 await ProcessMessageAsync(eventArgs, stoppingToken).ConfigureAwait(false);
-                channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
+                await channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, stoppingToken).ConfigureAwait(false);
             }
             catch (JsonException exception)
             {
                 Log.FailedToProcessProductChangeMessage(_logger, exception);
-                channel.BasicNack(eventArgs.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, stoppingToken).ConfigureAwait(false);
             }
             catch (InvalidOperationException exception)
             {
                 Log.FailedToProcessProductChangeMessage(_logger, exception);
-                channel.BasicNack(eventArgs.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, stoppingToken).ConfigureAwait(false);
             }
             catch (ArgumentException exception)
             {
                 Log.FailedToProcessProductChangeMessage(_logger, exception);
-                channel.BasicNack(eventArgs.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, stoppingToken).ConfigureAwait(false);
             }
         };
 
-        channel.BasicConsume(RabbitMqTopology.QueueName, autoAck: false, consumer);
+        await channel.BasicConsumeAsync(RabbitMqTopology.QueueName, autoAck: false, consumer, stoppingToken).ConfigureAwait(false);
 
         await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
     }
@@ -84,36 +86,38 @@ public sealed partial class RabbitMqCatalogEventConsumer : BackgroundService
         await _cartManager.UpdateCatalogItemAsync(changed.Id, changed.Name, image, changed.Price, cancellationToken).ConfigureAwait(false);
     }
 
-    private static void DeclareTopology(IModel channel)
+    private static async Task DeclareTopologyAsync(IChannel channel, CancellationToken cancellationToken)
     {
-        channel.ExchangeDeclare(RabbitMqTopology.ExchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
-        channel.ExchangeDeclare(RabbitMqTopology.RetryExchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
+        await channel.ExchangeDeclareAsync(RabbitMqTopology.ExchangeName, ExchangeType.Direct, durable: true, autoDelete: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.ExchangeDeclareAsync(RabbitMqTopology.RetryExchangeName, ExchangeType.Direct, durable: true, autoDelete: false, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        channel.QueueDeclare(
+        await channel.QueueDeclareAsync(
             RabbitMqTopology.QueueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: new Dictionary<string, object>
+            arguments: new Dictionary<string, object?>
             {
                 ["x-dead-letter-exchange"] = RabbitMqTopology.RetryExchangeName
-            });
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        channel.QueueDeclare(
+        await channel.QueueDeclareAsync(
             RabbitMqTopology.RetryQueueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: new Dictionary<string, object>
+            arguments: new Dictionary<string, object?>
             {
                 ["x-message-ttl"] = 5000,
                 ["x-dead-letter-exchange"] = RabbitMqTopology.ExchangeName
-            });
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        channel.QueueBind(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.ChangedRoutingKey);
-        channel.QueueBind(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.DeletedRoutingKey);
-        channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.ChangedRoutingKey);
-        channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.DeletedRoutingKey);
+        await channel.QueueBindAsync(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.ChangedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.DeletedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.ChangedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.DeletedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     private static partial class Log

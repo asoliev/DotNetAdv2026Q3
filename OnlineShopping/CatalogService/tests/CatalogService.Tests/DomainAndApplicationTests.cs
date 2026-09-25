@@ -24,7 +24,7 @@ public class DomainAndApplicationTests
 
         var product = new Product(Guid.NewGuid(), "Phone", null, null, Guid.NewGuid(), 299.99m, 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(product));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(product, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class DomainAndApplicationTests
 
         var category = new Category(Guid.NewGuid(), "Accessories", null, parentId);
 
-        await service.AddAsync(category);
+        await service.AddAsync(category, TestContext.Current.CancellationToken);
 
         Assert.Single(categoryRepository.StoredCategories);
     }
@@ -51,7 +51,7 @@ public class DomainAndApplicationTests
             new Product(Guid.NewGuid(), "Monitor", null, null, Guid.NewGuid(), 199.99m, 1));
         var service = new ProductService(productRepository, new FakeCategoryRepository(categoryId));
 
-        PagedResult<Product> page = await service.GetPageAsync(categoryId, 1, 1);
+        PagedResult<Product> page = await service.GetPageAsync(categoryId, 1, 1, TestContext.Current.CancellationToken);
 
         Assert.Equal(2, page.TotalCount);
         Assert.Single(page.Items);
@@ -67,7 +67,7 @@ public class DomainAndApplicationTests
             new Product(Guid.NewGuid(), "Mouse", null, null, categoryId, 19.99m, 2));
         var service = new CategoryService(categoryRepository, productRepository);
 
-        await service.DeleteAsync(categoryId);
+        await service.DeleteAsync(categoryId, TestContext.Current.CancellationToken);
 
         Assert.Equal(categoryId, productRepository.DeletedCategoryIds.Single());
         Assert.Equal(categoryId, categoryRepository.DeletedCategoryIds.Single());
