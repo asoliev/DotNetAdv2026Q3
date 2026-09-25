@@ -48,6 +48,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     [HttpPost]
     public async Task<ActionResult<CategoryResponse>> Create([FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var category = new Category(Guid.NewGuid(), request.Name, MapImage(request.Image), request.ParentCategoryId);
@@ -67,6 +68,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var category = new Category(id, request.Name, MapImage(request.Image), request.ParentCategoryId);
