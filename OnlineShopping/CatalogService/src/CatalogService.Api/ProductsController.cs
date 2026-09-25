@@ -17,7 +17,7 @@ namespace CatalogService.Api;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/products")]
-internal sealed class ProductsController(ProductService productService, IProductRepository productRepository, ICategoryRepository categoryRepository, IProductEventPublisher productEventPublisher) : ControllerBase
+public sealed class ProductsController(ProductService productService, IProductRepository productRepository, ICategoryRepository categoryRepository, IProductEventPublisher productEventPublisher) : ControllerBase
 {
     private readonly ProductService _productService = productService;
     private readonly IProductRepository _productRepository = productRepository;

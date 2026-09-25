@@ -16,7 +16,7 @@ namespace CatalogService.Api;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/categories")]
-internal sealed class CategoriesController(CategoryService categoryService, ICategoryRepository categoryRepository) : ControllerBase
+public sealed class CategoriesController(CategoryService categoryService, ICategoryRepository categoryRepository) : ControllerBase
 {
     private readonly CategoryService _categoryService = categoryService;
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
