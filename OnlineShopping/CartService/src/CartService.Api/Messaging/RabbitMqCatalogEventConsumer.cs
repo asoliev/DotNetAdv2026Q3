@@ -12,18 +12,20 @@ public sealed partial class RabbitMqCatalogEventConsumer : BackgroundService
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly CartManager _cartManager;
     private readonly ILogger<RabbitMqCatalogEventConsumer> _logger;
-    private readonly ConnectionFactory _connectionFactory = new()
-    {
-        HostName = "localhost",
-        UserName = "guest",
-        Password = GetRabbitMqPassword(),
-        DispatchConsumersAsync = true
-    };
+    private readonly ConnectionFactory _connectionFactory;
 
-    public RabbitMqCatalogEventConsumer(CartManager cartManager, ILogger<RabbitMqCatalogEventConsumer> logger)
+    public RabbitMqCatalogEventConsumer(CartManager cartManager, ILogger<RabbitMqCatalogEventConsumer> logger, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         _cartManager = cartManager ?? throw new ArgumentNullException(nameof(cartManager));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _connectionFactory = new ConnectionFactory
+        {
+            HostName = configuration["RabbitMq:Host"] ?? "localhost",
+            UserName = configuration["RabbitMq:Username"] ?? "guest",
+            Password = configuration["RabbitMq:Password"] ?? "guest",
+            DispatchConsumersAsync = true
+        };
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -112,12 +114,6 @@ public sealed partial class RabbitMqCatalogEventConsumer : BackgroundService
         channel.QueueBind(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.DeletedRoutingKey);
         channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.ChangedRoutingKey);
         channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.DeletedRoutingKey);
-    }
-
-    private static string GetRabbitMqPassword()
-    {
-        return Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD")
-            ?? throw new InvalidOperationException("RABBITMQ_PASSWORD environment variable is required.");
     }
 
     private static partial class Log

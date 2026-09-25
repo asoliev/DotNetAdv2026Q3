@@ -8,8 +8,7 @@
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5001",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "RABBITMQ_PASSWORD": "guest"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "https": {
@@ -19,8 +18,7 @@
       "launchUrl": "swagger",
       "applicationUrl": "https://localhost:7001;http://localhost:5001",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "RABBITMQ_PASSWORD": "guest"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   }

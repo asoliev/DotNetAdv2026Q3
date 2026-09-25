@@ -6,8 +6,12 @@ repo_root=$(git rev-parse --show-toplevel)
 solution_root="$repo_root/OnlineShopping"
 empty_tree=$(git hash-object -t tree /dev/null)
 zero_sha=0000000000000000000000000000000000000000
-checked_pairs=
 checked_solutions=
+
+# Per-solution file lists (space-separated absolute paths)
+files_CartService=
+files_CatalogService=
+files_IdentityService=
 
 default_remote_ref() {
   git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main
@@ -24,33 +28,60 @@ first_push_base() {
   fi
 }
 
-run_format_for_file() {
-  solution=$1
-  file=$2
-  pair="${solution}|${file}"
-
-  case " $checked_pairs " in
-    *" $pair "*) return ;;
-  esac
-
-  checked_pairs="$checked_pairs $pair"
-  echo "Running dotnet format for ${solution#$repo_root/} (${file#$repo_root/})"
-  dotnet format "$solution" --verify-no-changes --include "$file"
-}
-
 queue_solution() {
   solution=$1
-
   case " $checked_solutions " in
     *" $solution "*) return ;;
   esac
-
   checked_solutions="$checked_solutions $solution"
+}
+
+add_file_for_solution() {
+  key=$1   # CartService | CatalogService | IdentityService
+  file=$2
+  eval "list=\$files_${key}"
+  case " $list " in
+    *" $file "*) return ;;
+  esac
+  eval "files_${key}=\"\$list $file\""
+}
+
+run_format_for_solution() {
+  solution=$1
+  key=$2
+  eval "files=\$files_${key}"
+  [ -n "$files" ] || return 0
+
+  # Build --include args
+  include_args=""
+  for f in $files; do
+    include_args="$include_args --include $f"
+  done
+
+  echo "Running dotnet format for ${solution#$repo_root/}"
+  # shellcheck disable=SC2086
+  dotnet format "$solution" --verify-no-changes $include_args
+}
+
+seed_bin_from_obj() {
+  solution_dir=$(dirname "$1")
+  # macOS 15 com.apple.provenance prevents .NET File.Copy from obj→bin;
+  # shell cp works, so pre-seed bin with current obj outputs so the
+  # incremental build skips the copy step entirely.
+  find "$solution_dir" -path "*/obj/*/net*/*.dll" -o \
+                       -path "*/obj/*/net*/*.exe" 2>/dev/null | while IFS= read -r src; do
+    dest="${src/\/obj\//\/bin\/}"
+    dest_dir=$(dirname "$dest")
+    mkdir -p "$dest_dir"
+    cp -f "$src" "$dest" 2>/dev/null || true
+    touch "$dest" 2>/dev/null || true
+  done
 }
 
 run_build_for_solution() {
   solution=$1
   echo "Running dotnet build for ${solution#$repo_root/}"
+  seed_bin_from_obj "$solution"
   dotnet build "$solution"
 }
 
@@ -63,29 +94,34 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
 
   for changed_file in $(git diff --name-only "$base_sha" "$local_sha" -- '*.cs'); do
+    abs_file="$repo_root/$changed_file"
     case "$changed_file" in
       OnlineShopping/CartService/*)
         queue_solution "$solution_root/CartService/CartService.slnx"
-        run_format_for_file "$solution_root/CartService/CartService.slnx" "$repo_root/$changed_file"
+        add_file_for_solution "CartService" "$abs_file"
         ;;
       OnlineShopping/CatalogService/*)
         queue_solution "$solution_root/CatalogService/CatalogService.slnx"
-        run_format_for_file "$solution_root/CatalogService/CatalogService.slnx" "$repo_root/$changed_file"
+        add_file_for_solution "CatalogService" "$abs_file"
         ;;
       OnlineShopping/IdentityService/*)
         queue_solution "$solution_root/IdentityService/IdentityService.slnx"
-        run_format_for_file "$solution_root/IdentityService/IdentityService.slnx" "$repo_root/$changed_file"
+        add_file_for_solution "IdentityService" "$abs_file"
         ;;
       OnlineShopping/Shared/ShoppingAuth/*)
         queue_solution "$solution_root/CartService/CartService.slnx"
         queue_solution "$solution_root/CatalogService/CatalogService.slnx"
         queue_solution "$solution_root/IdentityService/IdentityService.slnx"
-        run_format_for_file "$solution_root/CartService/CartService.slnx" "$repo_root/$changed_file"
-        run_format_for_file "$solution_root/CatalogService/CatalogService.slnx" "$repo_root/$changed_file"
-        run_format_for_file "$solution_root/IdentityService/IdentityService.slnx" "$repo_root/$changed_file"
+        add_file_for_solution "CartService" "$abs_file"
+        add_file_for_solution "CatalogService" "$abs_file"
+        add_file_for_solution "IdentityService" "$abs_file"
         ;;
     esac
   done
+
+  run_format_for_solution "$solution_root/CartService/CartService.slnx"   "CartService"
+  run_format_for_solution "$solution_root/CatalogService/CatalogService.slnx" "CatalogService"
+  run_format_for_solution "$solution_root/IdentityService/IdentityService.slnx" "IdentityService"
 
   for solution in $checked_solutions; do
     run_build_for_solution "$solution"

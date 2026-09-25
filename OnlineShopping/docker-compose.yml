@@ -1,0 +1,95 @@
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # External dependency: RabbitMQ message broker
+  # Uses the official pre-built image with the management UI plugin included.
+  # The management UI is available at http://localhost:15672 (guest/guest).
+  # ─────────────────────────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: online-shopping-rabbitmq
+    ports:
+      - "5672:5672"     # AMQP protocol — used by CatalogService and CartService
+      - "15672:15672"   # Management UI — useful for inspecting queues/exchanges
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    # healthcheck lets dependent services wait until RabbitMQ is actually ready
+    # to accept connections, not just until the container process has started.
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # IdentityService — issues JWT tokens used by Catalog and Cart
+  # No external dependencies; JWT signing key is baked into ShoppingAuth.
+  # ─────────────────────────────────────────────────────────────────────────────
+  identity-service:
+    build:
+      context: .                            # OnlineShopping/ is the build context
+      dockerfile: IdentityService/Dockerfile
+    image: online-shopping/identity-service:local
+    container_name: online-shopping-identity
+    ports:
+      - "5003:8080"   # http://localhost:5003/swagger
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CatalogService — manages categories and products, publishes change events
+  # Depends on RabbitMQ being healthy before starting (condition: service_healthy).
+  # SQLite database is stored in the named volume 'catalog-data' at /app/data.
+  # ─────────────────────────────────────────────────────────────────────────────
+  catalog-service:
+    build:
+      context: .
+      dockerfile: CatalogService/Dockerfile
+    image: online-shopping/catalog-service:local
+    container_name: online-shopping-catalog
+    ports:
+      - "5002:8080"   # http://localhost:5002/swagger
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      RabbitMq__Host: rabbitmq       # overrides appsettings.json "RabbitMq:Host" — Docker DNS resolves 'rabbitmq'
+      RabbitMq__Username: guest      # overrides appsettings.json "RabbitMq:Username"
+      RabbitMq__Password: guest      # overrides appsettings.json "RabbitMq:Password"
+      Database__Directory: /app/data # overrides "Database:Directory" — SQLite stored in the mounted volume
+    volumes:
+      - catalog-data:/app/data      # named volume → data survives container restarts
+    depends_on:
+      rabbitmq:
+        condition: service_healthy  # wait until RabbitMQ passes its health check
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CartService — manages shopping carts, consumes product-change events
+  # Same pattern as CatalogService: waits for RabbitMQ, stores DB in a volume.
+  # ─────────────────────────────────────────────────────────────────────────────
+  cart-service:
+    build:
+      context: .
+      dockerfile: CartService/Dockerfile
+    image: online-shopping/cart-service:local
+    container_name: online-shopping-cart
+    ports:
+      - "5001:8080"   # http://localhost:5001/swagger
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      RabbitMq__Host: rabbitmq       # overrides appsettings.json "RabbitMq:Host"
+      RabbitMq__Username: guest      # overrides appsettings.json "RabbitMq:Username"
+      RabbitMq__Password: guest      # overrides appsettings.json "RabbitMq:Password"
+      Database__Directory: /app/data # overrides "Database:Directory" — LiteDB stored in the mounted volume
+    volumes:
+      - cart-data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+# Named volumes — Docker manages the actual storage location.
+# Data in these volumes persists across 'docker compose down' and restarts.
+# Use 'docker compose down -v' to also remove them (wipes all data).
+volumes:
+  catalog-data:
+  cart-data:

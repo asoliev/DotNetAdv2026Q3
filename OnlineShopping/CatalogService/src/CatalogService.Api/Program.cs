@@ -10,7 +10,8 @@ using Microsoft.OpenApi.Models;
 using ShoppingAuth;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-var databasePath = Path.Combine(builder.Environment.ContentRootPath, "catalog.db");
+var databaseDir = builder.Configuration["Database:Directory"] ?? builder.Environment.ContentRootPath;
+var databasePath = Path.Combine(databaseDir, "catalog.db");
 
 builder.Services.AddSingleton<ICategoryRepository>(_ => new SqliteCategoryRepository(databasePath));
 builder.Services.AddSingleton<IProductRepository>(_ => new SqliteProductRepository(databasePath));

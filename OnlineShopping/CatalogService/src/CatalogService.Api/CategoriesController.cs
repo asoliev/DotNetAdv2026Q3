@@ -16,7 +16,7 @@ namespace CatalogService.Api;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/categories")]
-internal sealed class CategoriesController(CategoryService categoryService, ICategoryRepository categoryRepository) : ControllerBase
+public sealed class CategoriesController(CategoryService categoryService, ICategoryRepository categoryRepository) : ControllerBase
 {
     private readonly CategoryService _categoryService = categoryService;
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
@@ -48,6 +48,7 @@ internal sealed class CategoriesController(CategoryService categoryService, ICat
     [HttpPost]
     public async Task<ActionResult<CategoryResponse>> Create([FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var category = new Category(Guid.NewGuid(), request.Name, MapImage(request.Image), request.ParentCategoryId);
@@ -67,6 +68,7 @@ internal sealed class CategoriesController(CategoryService categoryService, ICat
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var category = new Category(id, request.Name, MapImage(request.Image), request.ParentCategoryId);

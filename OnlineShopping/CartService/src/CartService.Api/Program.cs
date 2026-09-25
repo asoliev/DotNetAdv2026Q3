@@ -11,7 +11,8 @@ using Microsoft.OpenApi.Models;
 using ShoppingAuth;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-var databasePath = Path.Combine(builder.Environment.ContentRootPath, "cart.db");
+var databaseDir = builder.Configuration["Database:Directory"] ?? builder.Environment.ContentRootPath;
+var databasePath = Path.Combine(databaseDir, "cart.db");
 
 builder.Services.AddSingleton<ICartRepository>(_ => new LiteDbCartRepository(databasePath));
 builder.Services.AddSingleton<CartManager>();
