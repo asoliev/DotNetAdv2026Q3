@@ -38,4 +38,7 @@ COPY --from=build /app/publish .
 # ASP.NET Core listens on port 8080 inside the container by default (since .NET 8).
 EXPOSE 8080
 
+# Run as the built-in non-root 'app' user (APP_UID is set by the base image).
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "IdentityService.Api.dll"]

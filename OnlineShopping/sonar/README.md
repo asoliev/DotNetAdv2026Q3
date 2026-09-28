@@ -35,4 +35,4 @@ export SONAR_TOKEN=<your-token>
 
 Repeat the same pattern for `CatalogService` and `IdentityService` if you want separate SonarQube projects.
 
-The helper imports Cobertura coverage from `tests/**/TestResults/**/coverage.cobertura.xml` when a solution has a `tests/` folder. Coverage is a SonarQube metric that can fail the quality gate; it is not counted as a separate issue type.
+When a solution has a `tests/` folder, the helper rebuilds the whole solution (so every project, including ones the tests don't reference, is analyzed), runs the tests with Coverlet in OpenCover format, and imports `tests/**/TestResults/**/coverage.opencover.xml`. SonarC# does not read Cobertura reports. The RabbitMQ adapters (`**/Messaging/RabbitMq*.cs`) are excluded from coverage because they only run against a live broker; they are still analyzed for issues. Coverage is a SonarQube metric that can fail the quality gate; it is not counted as a separate issue type.

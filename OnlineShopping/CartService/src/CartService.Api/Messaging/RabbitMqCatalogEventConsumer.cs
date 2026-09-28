@@ -40,24 +40,12 @@ public sealed partial class RabbitMqCatalogEventConsumer : BackgroundService
         AsyncEventingBasicConsumer consumer = new(channel);
         consumer.ReceivedAsync += async (_, eventArgs) =>
         {
-            try
+            if (await TryProcessMessageAsync(eventArgs.RoutingKey, eventArgs.Body, stoppingToken).ConfigureAwait(false))
             {
-                await ProcessMessageAsync(eventArgs, stoppingToken).ConfigureAwait(false);
                 await channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, stoppingToken).ConfigureAwait(false);
             }
-            catch (JsonException exception)
+            else
             {
-                Log.FailedToProcessProductChangeMessage(_logger, exception);
-                await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, stoppingToken).ConfigureAwait(false);
-            }
-            catch (InvalidOperationException exception)
-            {
-                Log.FailedToProcessProductChangeMessage(_logger, exception);
-                await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, stoppingToken).ConfigureAwait(false);
-            }
-            catch (ArgumentException exception)
-            {
-                Log.FailedToProcessProductChangeMessage(_logger, exception);
                 await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, stoppingToken).ConfigureAwait(false);
             }
         };
@@ -67,19 +55,46 @@ public sealed partial class RabbitMqCatalogEventConsumer : BackgroundService
         await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
     }
 
-    private async Task ProcessMessageAsync(BasicDeliverEventArgs eventArgs, CancellationToken cancellationToken)
+    /// <summary>
+    /// Applies a catalog event to the carts. Returns <see langword="true"/> when the message should be acked,
+    /// or <see langword="false"/> (after logging) when it is invalid and should be nacked to the retry queue.
+    /// </summary>
+    internal async Task<bool> TryProcessMessageAsync(string routingKey, ReadOnlyMemory<byte> body, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ProcessMessageAsync(routingKey, body, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (JsonException exception)
+        {
+            Log.FailedToProcessProductChangeMessage(_logger, exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Log.FailedToProcessProductChangeMessage(_logger, exception);
+        }
+        catch (ArgumentException exception)
+        {
+            Log.FailedToProcessProductChangeMessage(_logger, exception);
+        }
+
+        return false;
+    }
+
+    private async Task ProcessMessageAsync(string routingKey, ReadOnlyMemory<byte> body, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (eventArgs.RoutingKey == RabbitMqTopology.DeletedRoutingKey)
+        if (routingKey == RabbitMqTopology.DeletedRoutingKey)
         {
-            ProductDeletedMessage deleted = JsonSerializer.Deserialize<ProductDeletedMessage>(eventArgs.Body.Span, JsonOptions)
+            ProductDeletedMessage deleted = JsonSerializer.Deserialize<ProductDeletedMessage>(body.Span, JsonOptions)
                 ?? throw new InvalidOperationException("Product delete message is invalid.");
             await _cartManager.RemoveCatalogItemAsync(deleted.Id, cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        ProductChangedMessage changed = JsonSerializer.Deserialize<ProductChangedMessage>(eventArgs.Body.Span, JsonOptions)
+        ProductChangedMessage changed = JsonSerializer.Deserialize<ProductChangedMessage>(body.Span, JsonOptions)
             ?? throw new InvalidOperationException("Product change message is invalid.");
 
         CartItemImage? image = changed.Image is null ? null : new CartItemImage(changed.Image.Url, changed.Image.AltText);

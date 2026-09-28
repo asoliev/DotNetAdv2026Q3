@@ -51,9 +51,14 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// </summary>
     [Authorize(Roles = AuthRoles.Manager)]
     [HttpPost]
-    public async Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
+    public Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return CreateInternal(request, cancellationToken);
+    }
+
+    private async Task<ActionResult<ProductResponse>> CreateInternal(ProductUpsertRequest request, CancellationToken cancellationToken)
+    {
         try
         {
             var product = new Product(Guid.NewGuid(), request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
@@ -72,9 +77,14 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// </summary>
     [Authorize(Roles = AuthRoles.Manager)]
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
+    public Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return UpdateInternal(id, request, cancellationToken);
+    }
+
+    private async Task<IActionResult> UpdateInternal(Guid id, ProductUpsertRequest request, CancellationToken cancellationToken)
+    {
         try
         {
             var product = new Product(id, request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
@@ -123,7 +133,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
 
     private static ImageResponse? MapImage(ImageInfo? image) => image is null ? null : new ImageResponse(image.Url, image.AltText);
 
-    private static ProductImageMessage? MapProductImage(ImageInfo? image) => image is null ? null : new ProductImageMessage(image.Url, image.AltText);
-
     private static ImageInfo? MapImage(ImageRequest? image) => image is null ? null : new ImageInfo(image.Url, image.AltText);
+
+    private static ProductImageMessage? MapProductImage(ImageInfo? image) => image is null ? null : new ProductImageMessage(image.Url, image.AltText);
 }

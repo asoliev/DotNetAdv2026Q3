@@ -75,7 +75,7 @@ public class IdentityServiceTests
         JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken);
 
         Assert.Contains("Manager", response.Roles);
-        Assert.Equal(new[] { "Create", "Delete", "Read", "Update" }, response.Permissions);
+        Assert.Equal(["Create", "Delete", "Read", "Update"], response.Permissions);
         Assert.Equal("manager@shop.local", token.Subject);
         Assert.Equal("Catalog Manager", token.Claims.First(claim => claim.Type == "name").Value);
         Assert.Contains(token.Claims.Where(claim => claim.Type == "role").Select(claim => claim.Value), role => role == "Manager");
@@ -94,7 +94,7 @@ public class IdentityServiceTests
 
         AuthTokenResponse response = service.RefreshTokens(refreshToken);
 
-        Assert.Equal(new[] { "Store customer" }, response.Roles);
+        Assert.Equal(["Store customer"], response.Roles);
         Assert.Contains("Read", response.Permissions);
         Assert.NotEqual(refreshToken.TokenHash, response.RefreshToken);
     }
@@ -182,8 +182,8 @@ public class IdentityServiceTests
         OkObjectResult ok = Assert.IsType<OkObjectResult>(result.Result);
         var response = Assert.IsType<TokenVerificationResponse>(ok.Value);
         Assert.Equal("Catalog Manager", response.UserName);
-        Assert.Equal(new[] { "Manager" }, response.Roles);
-        Assert.Equal(new[] { "Read" }, response.Permissions);
+        Assert.Equal(["Manager"], response.Roles);
+        Assert.Equal(["Read"], response.Permissions);
         Assert.Equal("Bearer", response.AuthenticationType);
         Assert.Equal(new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero), response.ExpiresAtUtc);
     }
@@ -205,6 +205,6 @@ public class IdentityServiceTests
 
         Assert.Equal("customer@shop.local", response.UserName);
         Assert.Equal("Bearer", response.AuthenticationType);
-        Assert.Equal(new[] { "StoreCustomer" }, response.Roles);
+        Assert.Equal(["StoreCustomer"], response.Roles);
     }
 }

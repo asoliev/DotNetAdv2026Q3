@@ -41,7 +41,13 @@ public sealed class SqliteCategoryRepository(string databasePath) : ICategoryRep
         return items;
     }
 
-    public async Task AddAsync(Category category, CancellationToken cancellationToken = default)
+    public Task AddAsync(Category category, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(category);
+        return InsertAsync(category, cancellationToken);
+    }
+
+    private async Task InsertAsync(Category category, CancellationToken cancellationToken)
     {
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
@@ -53,7 +59,13 @@ public sealed class SqliteCategoryRepository(string databasePath) : ICategoryRep
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(category);
+        return UpdateRowAsync(category, cancellationToken);
+    }
+
+    private async Task UpdateRowAsync(Category category, CancellationToken cancellationToken)
     {
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();

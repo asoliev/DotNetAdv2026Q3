@@ -7,7 +7,7 @@ public sealed class CartDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
-    public List<CartItemDocument> Items { get; set; } = new();
+    public List<CartItemDocument> Items { get; set; } = [];
 }
 
 public sealed class CartItemDocument

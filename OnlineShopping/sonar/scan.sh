@@ -12,7 +12,7 @@ solution_path=$2
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 solution_dir="$repo_root/$(dirname -- "$solution_path")"
-coverage_reports_path="$solution_dir/tests/**/TestResults/**/coverage.cobertura.xml"
+coverage_reports_path="$solution_dir/tests/**/TestResults/**/coverage.opencover.xml"
 
 dotnet tool restore --tool-manifest "$script_dir/dotnet-tools.json"
 
@@ -27,10 +27,12 @@ dotnet tool run dotnet-sonarscanner begin \
   /k:"$project_key" \
   /d:sonar.host.url="http://localhost:9000" \
   /d:sonar.token="$SONAR_TOKEN" \
-  /d:sonar.cs.cobertura.reportsPaths="$coverage_reports_path"
+  /d:sonar.cs.opencover.reportsPaths="$coverage_reports_path" \
+  /d:sonar.coverage.exclusions="**/Messaging/RabbitMq*.cs"
 
 if [ -d "$solution_dir/tests" ]; then
-  dotnet test "$repo_root/$solution_path" --collect "XPlat Code Coverage"
+  dotnet build "$repo_root/$solution_path" --no-incremental
+  dotnet test "$repo_root/$solution_path" --no-build --collect "XPlat Code Coverage;Format=opencover"
 else
   dotnet build "$repo_root/$solution_path"
 fi

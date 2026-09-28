@@ -2,7 +2,7 @@ namespace CartService.Bll;
 
 public sealed class Cart
 {
-    private readonly List<CartItem> _items = new();
+    private readonly List<CartItem> _items = [];
 
     public Cart(string key)
     {

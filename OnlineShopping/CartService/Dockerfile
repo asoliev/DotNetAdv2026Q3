@@ -36,7 +36,8 @@ WORKDIR /app
 
 # Create a directory for the LiteDB database file.
 # Mounting a Docker volume here ensures the database survives container restarts.
-RUN mkdir -p /app/data
+# Owned by the non-root 'app' user so the service can write to it.
+RUN mkdir -p /app/data && chown $APP_UID:$APP_UID /app/data
 
 # Copy only the published output from the build stage.
 COPY --from=build /app/publish .
@@ -46,5 +47,8 @@ ENV DATABASE_DIRECTORY=/app/data
 
 # ASP.NET Core listens on port 8080 inside the container by default (since .NET 8).
 EXPOSE 8080
+
+# Run as the built-in non-root 'app' user (APP_UID is set by the base image).
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "CartService.Api.dll"]

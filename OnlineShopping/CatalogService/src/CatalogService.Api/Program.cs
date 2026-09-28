@@ -29,7 +29,6 @@ builder.Services.AddShoppingJwtAuthentication();
 
 builder.Services.AddApiVersioning(options =>
 {
-    options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
     options.ApiVersionReader = new Asp.Versioning.UrlSegmentApiVersionReader();
     options.ReportApiVersions = true;
 })
@@ -54,9 +53,9 @@ IApiVersionDescriptionProvider versionProvider = app.Services.GetRequiredService
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    foreach (ApiVersionDescription description in versionProvider.ApiVersionDescriptions)
+    foreach (var groupName in versionProvider.ApiVersionDescriptions.Select(description => description.GroupName))
     {
-        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+        options.SwaggerEndpoint($"/swagger/{groupName}/swagger.json", groupName.ToUpperInvariant());
     }
 });
 

@@ -6,7 +6,7 @@ services:
   # The management UI is available at http://localhost:15672 (guest/guest).
   # ─────────────────────────────────────────────────────────────────────────────
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4-management
     container_name: online-shopping-rabbitmq
     ports:
       - "5672:5672"     # AMQP protocol — used by CatalogService and CartService

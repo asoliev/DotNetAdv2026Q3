@@ -76,7 +76,7 @@ Unchanged (already latest): `LiteDB 5.0.21`, `Microsoft.Data.Sqlite 10.0.12`.
 
 **Verified:**
 - 33/33 tests pass.
-- `coverage.cobertura.xml` is still produced for all 3 solutions (Sonar input).
+- `coverage.opencover.xml` is still produced for all 3 solutions (Sonar input).
 - The pre-push format check passes.
 
 ## Step 3 — Swashbuckle 10 + Asp.Versioning 10
@@ -197,7 +197,15 @@ I cleaned up all test data. The existing "Electronics" / "Laptop Pro" data in th
 ## Notes / follow-ups (not changed)
 
 - **Local .NET SDK is 10.0.101, with runtime 10.0.1.** This is 11 runtime patches behind 10.0.12, which the NuGet packages target. It affects only local `dotnet run`/`dotnet test`. The Docker images use the floating `sdk:10.0` / `aspnet:10.0` tags and get the latest patch on every build. Consider installing the latest 10.0 SDK locally.
-- **`rabbitmq:3-management` in `docker-compose.yml`.** RabbitMQ 4.x is available, and 3.x is getting close to end of support. The v7 client supports RabbitMQ 4, but I didn't change this because it's an infrastructure change worth testing separately.
+- **RabbitMQ: done, `rabbitmq:3-management` (3.13.7) → `rabbitmq:4-management` (4.3.6)** in `docker-compose.yml`.
+  - **Why no migration was needed:** the broker has no data volume, so every start is a fresh node. The 3.13 → 4.x migration rules (enable all feature flags, go through 4.2) therefore don't apply.
+  - **Compatibility:** the topology uses only durable classic queues, dead-lettering and TTL, and all of these work the same on 4.x. It doesn't use classic mirrored queues or transient non-exclusive queues, the two features 4.x removed or deprecated.
+  - **Verified:**
+    - the full 110-check suite passes locally with responses identical to the 3.13 run;
+    - the compose stack gives the same result as the 3.13 run (109/110, with the one expected existing-data difference);
+    - the malformed-message nack → retry queue → 5 s TTL → redelivery cycle works.
+  - **Broker log:** the one deprecation warning is `management_metrics_collection`. It's internal to the management plugin and doesn't involve our code or configuration.
+  - **Tooling note:** the bundled `rabbitmqadmin` CLI is now the rewritten v2 with a new syntax. Use the management HTTP API or the new syntax in any manual scripts.
 - **Microsoft.Testing.Platform:** the test projects are explicitly opted out (`IsTestingPlatformApplication=false`). To move to MTP later:
   - add `global.json` → `"test": { "runner": "Microsoft.Testing.Platform" }`;
   - replace `coverlet.collector` with an MTP coverage extension;

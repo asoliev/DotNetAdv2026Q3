@@ -54,8 +54,7 @@ public class DomainAndApplicationTests
         PagedResult<Product> page = await service.GetPageAsync(categoryId, 1, 1, TestContext.Current.CancellationToken);
 
         Assert.Equal(2, page.TotalCount);
-        Assert.Single(page.Items);
-        Assert.Equal("Keyboard", page.Items[0].Name);
+        Assert.Equal("Keyboard", Assert.Single(page.Items).Name);
     }
 
     [Fact]
@@ -75,7 +74,7 @@ public class DomainAndApplicationTests
 
     private sealed class FakeCategoryRepository : ICategoryRepository
     {
-        private readonly HashSet<Guid> _existingCategories = new();
+        private readonly HashSet<Guid> _existingCategories = [];
 
         public FakeCategoryRepository(params Guid[] existingCategoryIds)
         {
@@ -85,9 +84,9 @@ public class DomainAndApplicationTests
             }
         }
 
-        public List<Category> StoredCategories { get; } = new();
+        public List<Category> StoredCategories { get; } = [];
 
-        public List<Guid> DeletedCategoryIds { get; } = new();
+        public List<Guid> DeletedCategoryIds { get; } = [];
 
         public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Category?>(StoredCategories.FirstOrDefault(category => category.Id == id));
 
@@ -113,7 +112,7 @@ public class DomainAndApplicationTests
 
     private sealed class FakeProductRepository : IProductRepository
     {
-        private readonly List<Product> _products = new();
+        private readonly List<Product> _products = [];
 
         public FakeProductRepository(params Product[] products)
         {
@@ -158,6 +157,6 @@ public class DomainAndApplicationTests
             return Task.CompletedTask;
         }
 
-        public List<Guid> DeletedCategoryIds { get; } = new();
+        public List<Guid> DeletedCategoryIds { get; } = [];
     }
 }

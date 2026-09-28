@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using CatalogService.Application;
 using CatalogService.Domain;
 
@@ -58,7 +60,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
             }
 
             var result = await countCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            totalCount = Convert.ToInt32(result);
+            totalCount = Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
         var items = new List<Product>();
@@ -89,7 +91,13 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         return new PagedResult<Product>(items, totalCount, pageNumber, pageSize);
     }
 
-    public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
+    public Task AddAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        return InsertAsync(product, cancellationToken);
+    }
+
+    private async Task InsertAsync(Product product, CancellationToken cancellationToken)
     {
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
@@ -101,7 +109,13 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        return UpdateRowAsync(product, cancellationToken);
+    }
+
+    private async Task UpdateRowAsync(Product product, CancellationToken cancellationToken)
     {
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();

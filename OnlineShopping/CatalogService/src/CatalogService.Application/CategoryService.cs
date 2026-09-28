@@ -11,18 +11,16 @@ public sealed class CategoryService(ICategoryRepository categoryRepository, IPro
 
     public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default) => _categoryRepository.GetAllAsync(cancellationToken);
 
-    public async Task AddAsync(Category category, CancellationToken cancellationToken = default)
+    public Task AddAsync(Category category, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(category);
-        await ValidateParentCategoryAsync(category, cancellationToken).ConfigureAwait(false);
-        await _categoryRepository.AddAsync(category, cancellationToken).ConfigureAwait(false);
+        return AddValidatedAsync(category, cancellationToken);
     }
 
-    public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(category);
-        await ValidateParentCategoryAsync(category, cancellationToken).ConfigureAwait(false);
-        await _categoryRepository.UpdateAsync(category, cancellationToken).ConfigureAwait(false);
+        return UpdateValidatedAsync(category, cancellationToken);
     }
 
     public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => DeleteWithProductsAsync(id, cancellationToken);
@@ -31,6 +29,18 @@ public sealed class CategoryService(ICategoryRepository categoryRepository, IPro
     {
         await _productRepository.DeleteByCategoryIdAsync(id, cancellationToken).ConfigureAwait(false);
         await _categoryRepository.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task AddValidatedAsync(Category category, CancellationToken cancellationToken)
+    {
+        await ValidateParentCategoryAsync(category, cancellationToken).ConfigureAwait(false);
+        await _categoryRepository.AddAsync(category, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task UpdateValidatedAsync(Category category, CancellationToken cancellationToken)
+    {
+        await ValidateParentCategoryAsync(category, cancellationToken).ConfigureAwait(false);
+        await _categoryRepository.UpdateAsync(category, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ValidateParentCategoryAsync(Category category, CancellationToken cancellationToken)
