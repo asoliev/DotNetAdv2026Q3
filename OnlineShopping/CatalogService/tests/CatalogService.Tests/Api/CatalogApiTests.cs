@@ -59,7 +59,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
             using HttpResponseMessage updateProduct = await client.PutAsJsonAsync(Relative($"api/v1/products/{Guid.NewGuid()}"), product, Ct);
             using HttpResponseMessage deleteProduct = await client.DeleteAsync(Relative($"api/v1/products/{Guid.NewGuid()}"), Ct);
 
-            Assert.All(new[] { createCategory, updateCategory, deleteCategory, createProduct, updateProduct, deleteProduct }, response => Assert.Equal(expected, response.StatusCode));
+            Assert.All([createCategory, updateCategory, deleteCategory, createProduct, updateProduct, deleteProduct], response => Assert.Equal(expected, response.StatusCode));
         }
     }
 

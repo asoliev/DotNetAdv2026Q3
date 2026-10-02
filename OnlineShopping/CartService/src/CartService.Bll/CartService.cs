@@ -43,7 +43,7 @@ public sealed class CartManager(ICartRepository cartRepository)
     private async Task<IReadOnlyList<CartItem>> GetItemsCoreAsync(string cartKey, CancellationToken cancellationToken)
     {
         Cart? cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken).ConfigureAwait(false);
-        return cart?.GetItems() ?? Array.Empty<CartItem>();
+        return cart?.GetItems() ?? [];
     }
 
     private async Task<IReadOnlyList<CartItem>> AddItemCoreAsync(string cartKey, CartItem item, CancellationToken cancellationToken)

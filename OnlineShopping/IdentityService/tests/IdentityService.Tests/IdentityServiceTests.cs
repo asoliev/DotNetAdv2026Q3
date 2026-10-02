@@ -1,5 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 using IdentityService.Api.Controllers;
@@ -158,22 +158,23 @@ public class IdentityServiceTests
     [Fact]
     public void Verify_UsesPrincipalClaims()
     {
-        var controller = new AuthController(new IdentityStore(), new TokenService(new IdentityStore()));
-        controller.ControllerContext = new ControllerContext
+        var controller = new AuthController(new IdentityStore(), new TokenService(new IdentityStore()))
         {
-            HttpContext = new DefaultHttpContext
+            ControllerContext = new ControllerContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
-                    new[]
-                    {
-                        new Claim("name", "Catalog Manager"),
-                        new Claim("role", "Manager"),
-                        new Claim("role", "Manager"),
-                        new Claim("permission", "Read"),
-                        new Claim("permission", "Read"),
-                        new Claim("exp", new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))
-                    },
-                    "Bearer"))
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                        [
+                            new Claim("name", "Catalog Manager"),
+                            new Claim("role", "Manager"),
+                            new Claim("role", "Manager"),
+                            new Claim("permission", "Read"),
+                            new Claim("permission", "Read"),
+                            new Claim("exp", new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))
+                        ],
+                        "Bearer"))
+                }
             }
         };
 
@@ -192,11 +193,10 @@ public class IdentityServiceTests
     public void FromPrincipal_FallsBackToIdentityNameAndAuthenticationType()
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            new[]
-            {
+            [
                 new Claim(ClaimTypes.Name, "customer@shop.local"),
                 new Claim("role", "StoreCustomer")
-            },
+            ],
             authenticationType: null,
             nameType: ClaimTypes.Name,
             roleType: ClaimTypes.Role));

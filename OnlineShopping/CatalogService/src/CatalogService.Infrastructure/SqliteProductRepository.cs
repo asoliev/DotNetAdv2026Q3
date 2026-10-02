@@ -22,7 +22,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         LIMIT $pageSize OFFSET $offset;
         """;
 
-    private readonly CatalogDatabase _database = new CatalogDatabase(databasePath);
+    private readonly CatalogDatabase _database = new(databasePath);
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {

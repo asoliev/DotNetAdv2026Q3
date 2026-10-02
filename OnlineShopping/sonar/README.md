@@ -58,6 +58,12 @@ export SONAR_TOKEN=<your-token>
 ./OnlineShopping/sonar/scan.sh online-shopping-identityservice OnlineShopping/IdentityService/IdentityService.slnx
 ```
 
+The helper sends results to <http://localhost:9000> by default. To scan another server, such as a local install, set `SONAR_HOST_URL` and use a token from that server:
+
+```bash
+export SONAR_HOST_URL=http://localhost:9100
+```
+
 When a solution has a `tests/` folder, the helper:
 
 - rebuilds the whole solution, so every project is analyzed, including ones the tests don't reference;

@@ -8,9 +8,9 @@ namespace CatalogService.Api;
 /// </summary>
 internal static class ProductResponseMapper
 {
-    public static ProductResponse ToResponse(Product product) => new ProductResponse(product.Id, product.Name, product.Description, ToResponse(product.Image), product.CategoryId, product.Price, product.Amount);
+    public static ProductResponse ToResponse(Product product) => new(product.Id, product.Name, product.Description, ToResponse(product.Image), product.CategoryId, product.Price, product.Amount);
 
-    public static PageResponse<ProductResponse> ToPageResponse(PagedResult<Product> page) => new PageResponse<ProductResponse>(page.Items.Select(ToResponse).ToList(), page.TotalCount, page.PageNumber, page.PageSize);
+    public static PageResponse<ProductResponse> ToPageResponse(PagedResult<Product> page) => new([.. page.Items.Select(ToResponse)], page.TotalCount, page.PageNumber, page.PageSize);
 
     private static ImageResponse? ToResponse(ImageInfo? image) => image is null ? null : new ImageResponse(image.Url, image.AltText);
 }

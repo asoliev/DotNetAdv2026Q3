@@ -7,7 +7,7 @@ namespace CatalogService.Infrastructure;
 
 public sealed class SqliteCategoryRepository(string databasePath) : ICategoryRepository
 {
-    private readonly CatalogDatabase _database = new CatalogDatabase(databasePath);
+    private readonly CatalogDatabase _database = new(databasePath);
 
     public async Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {

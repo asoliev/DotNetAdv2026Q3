@@ -26,10 +26,13 @@ if [ -z "$SONAR_TOKEN" ]; then
   exit 1
 fi
 
+# Defaults to the Docker instance; override to scan another server, e.g. a local install.
+SONAR_HOST_URL=${SONAR_HOST_URL:-http://localhost:9000}
+
 cd "$script_dir"
 dotnet tool run dotnet-sonarscanner begin \
   /k:"$project_key" \
-  /d:sonar.host.url="http://localhost:9000" \
+  /d:sonar.host.url="$SONAR_HOST_URL" \
   /d:sonar.token="$SONAR_TOKEN" \
   /d:sonar.cs.opencover.reportsPaths="$coverage_reports_path" \
   /d:sonar.coverage.exclusions="**/Messaging/RabbitMq*.cs"

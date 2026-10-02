@@ -16,5 +16,5 @@ public static class AuthDefaults
 
     public static TimeSpan RefreshTokenLifetime => TimeSpan.FromDays(7);
 
-    public static SymmetricSecurityKey GetSigningKey() => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey));
+    public static SymmetricSecurityKey GetSigningKey() => new(Encoding.UTF8.GetBytes(SigningKey));
 }

@@ -122,7 +122,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
         return NoContent();
     }
 
-    private static ProductChangedMessage MapToMessage(Product product) => new ProductChangedMessage(product.Id, product.Name, product.Description, MapProductImage(product.Image), product.CategoryId, product.Price, product.Amount);
+    private static ProductChangedMessage MapToMessage(Product product) => new(product.Id, product.Name, product.Description, MapProductImage(product.Image), product.CategoryId, product.Price, product.Amount);
 
     private static ImageInfo? MapImage(ImageRequest? image) => image is null ? null : new ImageInfo(image.Url, image.AltText);
 

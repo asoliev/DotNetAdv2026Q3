@@ -27,7 +27,7 @@ public sealed class Cart
 
     public string Id { get; }
 
-    public IReadOnlyList<CartItem> GetItems() => _items.Select(item => item.Copy()).ToList();
+    public IReadOnlyList<CartItem> GetItems() => [.. _items.Select(item => item.Copy())];
 
     public void AddItem(CartItem item)
     {

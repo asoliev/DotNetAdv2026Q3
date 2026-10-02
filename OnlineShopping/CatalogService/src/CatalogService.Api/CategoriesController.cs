@@ -108,7 +108,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
         return NoContent();
     }
 
-    private static CategoryResponse Map(Category category) => new CategoryResponse(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
+    private static CategoryResponse Map(Category category) => new(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
 
     private static ImageResponse? MapImage(ImageInfo? image) => image is null ? null : new ImageResponse(image.Url, image.AltText);
 

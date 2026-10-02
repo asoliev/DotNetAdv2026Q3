@@ -55,7 +55,7 @@ public class CartManagerTests
     public async Task RemoveItemAsync_WhenItemExists_RemovesAndPersistsCart()
     {
         var itemId = Guid.NewGuid();
-        var repository = new FakeCartRepository(new Cart("cart-1", new[] { new CartItem(itemId, "Keyboard", null, 99.99m, 1) }));
+        var repository = new FakeCartRepository(new Cart("cart-1", [new CartItem(itemId, "Keyboard", null, 99.99m, 1)]));
         var manager = new CartManager(repository);
 
         var removed = await manager.RemoveItemAsync("cart-1", itemId, TestContext.Current.CancellationToken);
@@ -69,8 +69,8 @@ public class CartManagerTests
     {
         var itemId = Guid.NewGuid();
         var repository = new FakeCartRepository(
-            new Cart("cart-1", new[] { new CartItem(itemId, "Keyboard", null, 99.99m, 1) }),
-            new Cart("cart-2", new[] { new CartItem(Guid.NewGuid(), "Mouse", null, 25.00m, 1) }));
+            new Cart("cart-1", [new CartItem(itemId, "Keyboard", null, 99.99m, 1)]),
+            new Cart("cart-2", [new CartItem(Guid.NewGuid(), "Mouse", null, 25.00m, 1)]));
         var manager = new CartManager(repository);
         var image = new CartItemImage(new Uri("https://example.com/keyboard.png"), "Keyboard");
 
@@ -88,8 +88,8 @@ public class CartManagerTests
     {
         var itemId = Guid.NewGuid();
         var repository = new FakeCartRepository(
-            new Cart("cart-1", new[] { new CartItem(itemId, "Keyboard", null, 99.99m, 1) }),
-            new Cart("cart-2", new[] { new CartItem(Guid.NewGuid(), "Mouse", null, 25.00m, 1) }));
+            new Cart("cart-1", [new CartItem(itemId, "Keyboard", null, 99.99m, 1)]),
+            new Cart("cart-2", [new CartItem(Guid.NewGuid(), "Mouse", null, 25.00m, 1)]));
         var manager = new CartManager(repository);
 
         await manager.RemoveCatalogItemAsync(itemId, TestContext.Current.CancellationToken);
@@ -134,7 +134,7 @@ public class CartManagerTests
 
         public Task<IReadOnlyList<Cart>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            IReadOnlyList<Cart> carts = _carts.Values.ToList();
+            IReadOnlyList<Cart> carts = [.. _carts.Values];
             return Task.FromResult(carts);
         }
 

@@ -90,7 +90,7 @@ public class DomainAndApplicationTests
 
         public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Category?>(StoredCategories.FirstOrDefault(category => category.Id == id));
 
-        public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Category>>(StoredCategories.ToList());
+        public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Category>>([.. StoredCategories]);
 
         public Task AddAsync(Category category, CancellationToken cancellationToken = default)
         {
@@ -121,7 +121,7 @@ public class DomainAndApplicationTests
 
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Product?>(_products.FirstOrDefault(product => product.Id == id));
 
-        public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Product>>(_products.ToList());
+        public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Product>>([.. _products]);
 
         public Task<PagedResult<Product>> GetPageAsync(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
         {

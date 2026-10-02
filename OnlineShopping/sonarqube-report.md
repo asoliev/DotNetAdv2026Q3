@@ -145,7 +145,7 @@ These fixes were applied on 2026-10-02. See [Follow-up — 2026-10-02](#follow-u
 
 Neither `sonar.properties` nor `scan.sh`'s target host was changed.
 
-**As of 2026-10-02 both instances are stopped.** The 26.9 database still holds the `admin/admin` login and the `claude-temp-scan-new` token. Revoke the token and change the password before using that instance again.
+**Update 2026-10-02:** the Docker stack was upgraded to 26.9 on `:9000`. The local 26.9 instance on `:9100` was cleaned up and rescanned. See "Style fixes and local instance rescan" below.
 
 ---
 
@@ -308,6 +308,24 @@ The scan used the fixed `scan.sh`, with exactly 1 coverage report per project.
 
 These coverage numbers are slightly below the earlier 26.9 scans. Those scans had stale reports merged in, so the numbers above are the accurate ones.
 
+### Style fixes and local instance rescan (2026-10-02)
+
+- **Docker rescan after the IDE0007/IDE0008/IDE0290 fixes:** Cart and Identity still have 0 issues and pass the gate. Cart coverage is 91.8%, down from 91.9%, because the primary-constructor null checks (`?? throw`) are branches no test reaches. Cart new-code coverage is 88.9% (the gate needs at least 80%).
+- **Local 26.9 instance (`:9100`) cleaned up:**
+  - The admin password was reset.
+  - The `claude-temp-scan-new` token was revoked and replaced by `local-scan`.
+  - `sonar.properties` and `sonar.sh` were fixed (JDBC URL; the custom macOS block was removed).
+- **`scan.sh` now reads `SONAR_HOST_URL`**, defaulting to `http://localhost:9000`.
+- **Local instance rescanned with the current code.** Its 18 issues from 2026-09-28 are gone, and the results match Docker:
+
+| | Cart | Catalog | Identity |
+|---|---|---|---|
+| Quality gate | Passed | Passed | Passed |
+| Open issues | 0 | 0 | 0 |
+| Reliability / Security / Maintainability | A / A / A | A / A / A | A / A / A |
+| Coverage | 91.8% | 98.1% | 91.1% |
+| Lines of code | 770 | 1064 | 362 |
+
 ## Next steps (decisions needed from you)
 
 1. ~~**S2068, the RabbitMQ `guest/guest` login**~~: done (2026-10-02), see above.
@@ -315,6 +333,6 @@ These coverage numbers are slightly below the earlier 26.9 scans. Those scans ha
 3. ~~**`CartDocument.Items`**~~: done (2026-10-02).
 4. ~~**SonarQube version**~~: done (2026-10-02). The Docker stack runs Community Build `26.9.0.129388` (Temurin 25 inside the image) on `postgres:18.6`, and all 3 projects have been scanned.
    - The old 9.9 volumes are kept for rollback; see `sonar/README.md` to remove them.
-5. **Clean up the standalone local 26.9 instance** (`~/Applications/sonarqube-26.9.0.129388`, port 9100): reset its admin password and revoke the `claude-temp-scan-new` token.
-6. **Optional:** the IDE0007/IDE0008/IDE0290 style warnings that only `dotnet format` reports; old `TestResults` folders can be deleted to free disk space.
+5. ~~**Clean up the standalone local 26.9 instance**~~: done (2026-10-02), rescanned with 0 issues.
+6. ~~**IDE0007/IDE0008/IDE0290 style warnings**~~: done (2026-10-02). Old `TestResults` folders were deleted. About 35 info-level suggestions (IDE0090, IDE0300/0301/0305, IDE0017) are still open.
 7. **Commit** the ASP0018 fix, the `scan.sh` fix and these docs. The SonarQube upgrade and S2068 were committed in `78013f0`.
