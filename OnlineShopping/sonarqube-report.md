@@ -326,6 +326,25 @@ These coverage numbers are slightly below the earlier 26.9 scans. Those scans ha
 | Coverage | 91.8% | 98.1% | 91.1% |
 | Lines of code | 770 | 1064 | 362 |
 
+### Info-level style fixes (2026-10-02)
+
+`dotnet format style --severity info` applied all 35 suggestions in 19 files:
+
+- 14 × IDE0090: target-typed `new(...)`.
+- 20 × IDE0300/0301/0305: collection expressions, for example `[.. items.Select(Map)]` and `?? []`.
+- 1 × IDE0017: an object initializer in a test.
+
+The formatter also sorted 2 `using` blocks. No behavior changed.
+
+Afterwards the build has 0 warnings, the tests pass (Cart 34/34, Catalog 34/34, Identity 14/14), and `dotnet format style --severity info --verify-no-changes` reports nothing left. Rescanned on both servers:
+
+| | Cart | Catalog | Identity |
+|---|---|---|---|
+| Quality gate (Docker and local) | Passed | Passed | Passed |
+| Open issues | 0 | 0 | 0 |
+| Coverage | 91.8% | 98.1% | 91.1% |
+| New-code coverage (Docker / local) | 95.6% / 96.3% | 100% / 100% | 100% / 100% |
+
 ## Next steps (decisions needed from you)
 
 1. ~~**S2068, the RabbitMQ `guest/guest` login**~~: done (2026-10-02), see above.
@@ -334,5 +353,5 @@ These coverage numbers are slightly below the earlier 26.9 scans. Those scans ha
 4. ~~**SonarQube version**~~: done (2026-10-02). The Docker stack runs Community Build `26.9.0.129388` (Temurin 25 inside the image) on `postgres:18.6`, and all 3 projects have been scanned.
    - The old 9.9 volumes are kept for rollback; see `sonar/README.md` to remove them.
 5. ~~**Clean up the standalone local 26.9 instance**~~: done (2026-10-02), rescanned with 0 issues.
-6. ~~**IDE0007/IDE0008/IDE0290 style warnings**~~: done (2026-10-02). Old `TestResults` folders were deleted. About 35 info-level suggestions (IDE0090, IDE0300/0301/0305, IDE0017) are still open.
+6. ~~**IDE0007/IDE0008/IDE0290 style warnings**~~: done (2026-10-02). Old `TestResults` folders were deleted. All 35 info-level suggestions are fixed as well.
 7. **Commit** the ASP0018 fix, the `scan.sh` fix and these docs. The SonarQube upgrade and S2068 were committed in `78013f0`.
