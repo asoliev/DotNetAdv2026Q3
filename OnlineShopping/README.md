@@ -21,6 +21,20 @@ dotnet run --project OnlineShopping/CatalogService/src/CatalogService.Api/Catalo
 dotnet run --project OnlineShopping/CartService/src/CartService.Api/CartService.Api.csproj
 ```
 
+### RabbitMQ credentials
+
+`appsettings.json` only contains the RabbitMQ host. The login is not stored in the repository:
+
+- If no credentials are configured, Catalog and Cart use the client's built-in `guest` login. RabbitMQ only accepts it from `localhost`, so a local broker with default settings works without any setup.
+- `docker-compose.yml` passes the login as `RabbitMq__Username` / `RabbitMq__Password` environment variables.
+- For a broker with a different login, set the same environment variables, or use user-secrets (both API projects have a `UserSecretsId`):
+
+```bash
+dotnet user-secrets set "RabbitMq:Username" "<user>" --project OnlineShopping/CatalogService/src/CatalogService.Api
+dotnet user-secrets set "RabbitMq:Password" "<password>" --project OnlineShopping/CatalogService/src/CatalogService.Api
+# repeat for OnlineShopping/CartService/src/CartService.Api
+```
+
 ## Authentication flow
 
 Use the identity service to get an access token and refresh token.

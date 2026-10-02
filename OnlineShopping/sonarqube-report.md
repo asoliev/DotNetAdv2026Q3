@@ -5,8 +5,9 @@
 **Scope:** all 3 scanned projects (IdentityService, CatalogService, CartService) plus the shared `sonar/scan.sh` tooling
 **Status:** in progress.
 - Sections 1–6 below were committed in `b4a0bdc`.
-- The 2026-10-02 follow-up (the new 26.9 findings: S6964, S6966, S1192, S8969, S2077) is on disk and not committed yet. See [Follow-up — 2026-10-02](#follow-up--2026-10-02).
-- No rescan has been run since the follow-up changes, so the SonarQube numbers in sections 1–7 are from 2026-09-28.
+- The 2026-10-02 follow-up code fixes (S6964, S6966, S1192, S8969, S2077, CA2227/CA1002) were committed in `2daaf96` and `1748fdd`. See [Follow-up — 2026-10-02](#follow-up--2026-10-02).
+- The SonarQube 26.9 / Postgres 18 upgrade (`sonar/docker-compose.yml`, `sonar/README.md`) is not committed yet.
+- Sections 1–7 hold the 2026-09-28 numbers. The current numbers are in [SonarQube 26.9 scan — 2026-10-02](#sonarqube-269-scan--2026-10-02).
 
 This report replaces the running commentary in `sonar_news.txt` (kept as raw chat history) with a single before/after summary, organized by what was wrong, what was fixed, and what's still open.
 
@@ -199,12 +200,71 @@ There has been no SonarQube rescan yet. These numbers come from the same `covera
   - IDE0007 / IDE0008 (`var` vs. explicit type) in `IdentityServiceTests.cs`, `AccessTokenLoggingMiddleware.cs` and `LiteDbCartRepository.cs`. The two rules contradict each other between files, which points to an `.editorconfig` inconsistency.
   - IDE0290 (use a primary constructor) in `CartsController.cs`, `AccessTokenLoggingMiddleware.cs` and `CartService.cs`.
 
+## SonarQube 26.9 scan — 2026-10-02
+
+This is the first analysis on the new Docker stack: Community Build `26.9.0.129388` on `postgres:18.6`, scanner 11.3.0. All 3 projects were scanned with `sonar/scan.sh`.
+
+Because this is the first analysis of each project, the quality gate's "new code" conditions were not evaluated yet. They will be from the next scan onward.
+
+| Metric | Cart | Catalog | Identity |
+|---|---|---|---|
+| Quality gate | Passed | Passed | Passed |
+| Coverage | 92.3% | 97.6% | 91.1% |
+| Line coverage | 94.0% | 98.6% | 91.8% |
+| Branch coverage | 84.1% | 92.8% | 87.5% |
+| Uncovered lines (of lines to cover) | 25 of 416 | 9 of 663 | 17 of 207 |
+| Bugs | 0 | 0 | 0 |
+| Vulnerabilities | 1 | 1 | 0 |
+| Code smells | 0 | 1 | 0 |
+| Security hotspots | 0 | 0 | 0 |
+| Duplication | 0% | 0% | 0% |
+| Lines of code | 780 | 1034 | 362 |
+| Cognitive complexity | 51 | 55 | 15 |
+| Technical debt | 0 min | 0 min | 0 min |
+| Reliability / Security / Maintainability | A / **C** / A | A / **C** / A | A / A / A |
+
+**Remaining issues (3):**
+
+| Rule | Where | Severity | Note |
+|---|---|---|---|
+| `csharpsquid:S2068` hard-coded password | `CartService/src/CartService.Api/appsettings.json:5` | Vulnerability | RabbitMQ `guest/guest` dev login. This is the only reason Security is rated C. |
+| `csharpsquid:S2068` hard-coded password | `CatalogService/src/CatalogService.Api/appsettings.json:5` | Vulnerability | Same as above. |
+| `external_roslyn:ASP0018` unused route parameter `version` | `CatalogService/src/CatalogService.Api/Controllers/ProductsController.cs:46` | Info | The route parameter is used by API versioning, not by the action. |
+
+**Gone compared with earlier scans:**
+
+- S6964, S6966, S1192, S8969 and S2077;
+- the 2 SQL-injection hotspots;
+- CA2227 / CA1002;
+- all the 9.9-era false positives.
+
+### S2068 fix and rescan (2026-10-02)
+
+The RabbitMQ login was moved out of the repository:
+
+- Cart's and Catalog's `appsettings.json` now only contain `RabbitMq:Host`.
+- `RabbitMqCatalogEventConsumer` and `RabbitMqProductEventPublisher` no longer hard-code a `"guest"` fallback. They only set `UserName` / `Password` when configuration provides them. Otherwise the RabbitMQ client's built-in default is used, which is the same `guest` login, accepted only from `localhost`, so local `dotnet run` behaves as before.
+- Both API projects have a `UserSecretsId` (`online-shopping-cartservice-api`, `online-shopping-catalogservice-api`), so `dotnet user-secrets set "RabbitMq:Password" ...` works locally.
+- `docker-compose.yml` already passed the credentials as `RabbitMq__Username` / `RabbitMq__Password` environment variables. Only its comments changed. See the root `README.md` → *RabbitMQ credentials*.
+
+On the rescan, the second analysis evaluated the gate's new-code conditions, and both passed:
+
+| | Cart | Catalog |
+|---|---|---|
+| Quality gate | Passed | Passed |
+| Vulnerabilities | 0 | 0 |
+| Security rating | **A** | **A** |
+| Coverage | 92.3% | 98.3% |
+| Code smells | 0 | 1 (ASP0018) |
+
+Tests: Cart 34/34 and Catalog 34/34 pass, with 0 build warnings.
+
 ## Next steps (decisions needed from you)
 
-1. **Start SonarQube and rescan** to confirm the follow-up fixes. Expected result: S6964, S6966, S1192, S8969 and S2077 are gone, along with the 2 SQL hotspots.
-2. **Mark the 2 remaining hotspots Safe:** the `guest/guest` RabbitMQ login in Cart's and Catalog's `appsettings.json`. Alternatively, move those credentials out of `appsettings.json` into environment variables or user-secrets.
+1. ~~**S2068, the RabbitMQ `guest/guest` login**~~: done (2026-10-02), see above.
+2. **ASP0018** on `ProductsController.cs:46`: mark it false-positive, or add an `ApiVersion version` parameter.
 3. ~~**`CartDocument.Items`**~~: done (2026-10-02).
-4. **ASP0018** on `ProductsController.cs:46`: mark it false-positive, or add an `ApiVersion version` parameter.
-5. **SonarQube version:** stay on 9.9 (mark the 19 S3604/S3928 false positives by hand) or move the Docker stack to the current Community Build with Postgres 18. Moving needs a fresh start or a data migration, because the volumes hold scan history, the admin password and tokens.
-6. **Clean up the local 26.9 instance:** revoke the `claude-temp-scan-new` token and change `admin/admin`.
-7. **Commit** the 2026-10-02 follow-up.
+4. ~~**SonarQube version**~~: done (2026-10-02). The Docker stack runs Community Build `26.9.0.129388` (Temurin 25 inside the image) on `postgres:18.6`, and all 3 projects have been scanned.
+   - The old 9.9 volumes are kept for rollback; see `sonar/README.md` to remove them.
+5. **Clean up the standalone local 26.9 instance** (`~/Applications/sonarqube-26.9.0.129388`, port 9100): reset its admin password and revoke the `claude-temp-scan-new` token.
+6. **Commit** the SonarQube upgrade docs (`sonar/docker-compose.yml`, `sonar/README.md`, this report) and the S2068 fix.

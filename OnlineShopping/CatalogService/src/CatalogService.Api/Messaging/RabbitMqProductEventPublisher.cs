@@ -15,12 +15,19 @@ internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
 
     public RabbitMqProductEventPublisher(IConfiguration configuration)
     {
-        _connectionFactory = new ConnectionFactory
+        _connectionFactory = new ConnectionFactory { HostName = configuration["RabbitMq:Host"] ?? "localhost" };
+
+        // Credentials come from environment variables or user-secrets. Without them the client's built-in
+        // guest login is used, which RabbitMQ only accepts from localhost.
+        if (configuration["RabbitMq:Username"] is { } userName)
         {
-            HostName = configuration["RabbitMq:Host"] ?? "localhost",
-            UserName = configuration["RabbitMq:Username"] ?? "guest",
-            Password = configuration["RabbitMq:Password"] ?? "guest"
-        };
+            _connectionFactory.UserName = userName;
+        }
+
+        if (configuration["RabbitMq:Password"] is { } password)
+        {
+            _connectionFactory.Password = password;
+        }
     }
 
     public Task PublishUpsertedAsync(ProductChangedMessage message, CancellationToken cancellationToken = default) => PublishAsync(RabbitMqTopology.ChangedRoutingKey, message, cancellationToken);
