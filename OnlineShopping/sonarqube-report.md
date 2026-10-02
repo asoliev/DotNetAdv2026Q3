@@ -1,9 +1,12 @@
 # OnlineShopping — SonarQube Cleanup Report
 
-**Date:** 2026-09-28
-**Branch:** `update_packages`
+**Date:** 2026-09-28, follow-up on 2026-10-02
+**Branch:** `enhance_project`
 **Scope:** all 3 scanned projects (IdentityService, CatalogService, CartService) plus the shared `sonar/scan.sh` tooling
-**Status:** in progress, **nothing described here is committed yet** — everything is staged or on disk on top of commit `f0b9db3`
+**Status:** in progress.
+- Sections 1–6 below were committed in `b4a0bdc`.
+- The 2026-10-02 follow-up (the new 26.9 findings: S6964, S6966, S1192, S8969, S2077) is on disk and not committed yet. See [Follow-up — 2026-10-02](#follow-up--2026-10-02).
+- No rescan has been run since the follow-up changes, so the SonarQube numbers in sections 1–7 are from 2026-09-28.
 
 This report replaces the running commentary in `sonar_news.txt` (kept as raw chat history) with a single before/after summary, organized by what was wrong, what was fixed, and what's still open.
 
@@ -54,6 +57,8 @@ These are false positives that still need to be marked **Safe** in the SonarQube
 
 **This is the one item blocking the Cart and Catalog gates from going green** once coverage and code smells are addressed — see "Next steps."
 
+> **2026-10-02:** the two SQL lines were rewritten as fixed, fully parameterized queries, so those 2 hotspots should go away on the next scan. Only the 2 `guest/guest` hotspots will still need review.
+
 ### 4. Coverage — Catalog and Cart Api-level tests (done, uncommitted)
 
 Added the same kind of API-level integration tests Identity already had, so the previously-invisible `*.Api` projects are now exercised:
@@ -101,7 +106,7 @@ All 3 solutions' tests pass after these changes (Cart 31, Catalog 31, Identity 1
 
 1. **S3604 (×15) / S3928 (×4):** false positives from SonarQube 9.9's analyzer (v8.51), which predates C# 12 primary constructors — it misreads fields like `_database = new CatalogDatabase(databasePath)` as "overwritten by a constructor" when there is no other constructor. Confirmed as a genuine analyzer bug: **all 19 disappeared under SonarQube 26.9** with no code changes (see below). No fix needed if/when 26.9 is adopted; otherwise they'd need to be marked false-positive in the 9.9 UI.
 2. **ASP0018** in `ProductsController.cs:46`: likely a false positive — `{version:apiVersion}` in the route is consumed by the API-versioning library, not by the action's parameters. Still present in 26.9. Options: mark false-positive, or add an unused `ApiVersion version` parameter.
-3. **CA2227 / CA1002** on `CartDocument.Items`: this is the LiteDB storage model, and LiteDB needs a public settable `List<T>` to deserialize into. Removing the setter risks breaking existing carts. Still present in 26.9. Options: mark won't-fix in SonarQube, or add a targeted `[SuppressMessage]` with justification.
+3. **CA2227 / CA1002** on `CartDocument.Items`: this is the LiteDB storage model, and LiteDB needs a public settable `List<T>` to deserialize into. Removing the setter risks breaking existing carts. Still present in 26.9. Options: mark won't-fix in SonarQube, or add a targeted `[SuppressMessage]` with justification. **2026-10-02:** a code fix that LiteDB accepts was found, `IList<T>` with an `init` setter. See the follow-up section.
 
 ---
 
@@ -127,7 +132,7 @@ Separately from the code-quality work, a local (non-Docker) SonarQube **26.9 Com
 
 **Caveat noted at the time:** 26.9's gates all showed OK, but that's not meaningful yet — a project's first analysis has no "new code" baseline, so gate conditions aren't evaluated until the second scan.
 
-**None of the S6964 / S6966 / S1192 / S8969 / S2077-rewrite fixes have been applied.** The session was interrupted (a streaming API error) immediately after this comparison was presented, before a go-ahead was given.
+These fixes were applied on 2026-10-02. See [Follow-up — 2026-10-02](#follow-up--2026-10-02).
 
 ---
 
@@ -136,11 +141,13 @@ Separately from the code-quality work, a local (non-Docker) SonarQube **26.9 Com
 - **Docker SonarQube 9.9** (`sonarqube:lts-community` + `postgres:16`) — running on `:9000`, unchanged, still the "official" instance referenced by `scan.sh`.
 - **Local SonarQube 26.9** — running directly (not in Docker) on `:9100`, login still `admin/admin` (not changed), with a temporary token `claude-temp-scan-new` still active. Left running for inspection. Standing it up required: creating the `sonarqube` DB/role in Postgres 18.6 by hand (nothing existed), overriding a broken JDBC URL in `sonar.properties` for that session only (a stray `#` targets a nonexistent database/schema — file itself is unchanged), using Java 21 (what 26.9's bundled runtime targets, not 25), and disabling the macOS-blocking Elasticsearch bootstrap checks.
 
-Both instances are currently reachable; neither `sonar.properties` nor `scan.sh`'s target host was changed.
+Neither `sonar.properties` nor `scan.sh`'s target host was changed.
+
+**As of 2026-10-02 both instances are stopped.** The 26.9 database still holds the `admin/admin` login and the `claude-temp-scan-new` token. Revoke the token and change the password before using that instance again.
 
 ---
 
-## Net result so far (once everything above is committed)
+## Net result as of 2026-09-28 (SonarQube 9.9)
 
 | Service | Code smells before → now | Coverage | Gate |
 |---|---|---|---|
@@ -152,11 +159,52 @@ Both instances are currently reachable; neither `sonar.properties` nor `scan.sh`
 
 ---
 
+---
+
+## Follow-up — 2026-10-02
+
+### Code changes (on disk, not committed)
+
+| Rule | File(s) | Change |
+|---|---|---|
+| **S6964**: value-type request fields weren't required | Cart and Catalog `Contracts.cs` | `CartItemRequest.Id/Price/Quantity` and `ProductUpsertRequest.CategoryId/Price/Amount` are now `[property: JsonRequired]`. A request without one of them now gets **400** from model binding instead of being stored with `0` / `Guid.Empty`. **This tightens the API contract.** |
+| **S2077**: SQL built from strings (also the 2 SQL hotspots) | `SqliteProductRepository.cs` | `GetPageAsync` no longer interpolates a `WHERE` clause. Two `const` queries use `WHERE ($categoryId IS NULL OR CategoryId = $categoryId)`, and `$categoryId` is always bound (`DBNull` when there's no filter). |
+| **S1192**: `"$categoryId"` repeated 4 times | `SqliteProductRepository.cs` | Replaced with a `CategoryIdParameter` constant. |
+| **S8969**: unnecessary `!` | `SqliteProductRepository.cs` | Removed from `product.Description!`. |
+| **S6966**: `app.Run()` | all 3 `Program.cs` | Now `await app.RunAsync().ConfigureAwait(false)`. |
+| **CA2227 / CA1002**: settable `List<T>` property | Cart `CartDocument.cs` | `Items` is now `IList<CartItemDocument> { get; init; }`. LiteDB still has a setter to fill it on load, and the stored BSON shape is unchanged. |
+
+**New tests:** `CartApiTests.ItemWithMissingRequiredFieldIsRejected` and `CatalogApiTests.ProductWithMissingRequiredFieldIsRejected`. Each has 3 cases, one per required field left out, and expects 400.
+
+**Verified locally:** 82/82 tests pass (Identity 14, Cart 34, Catalog 34). All 3 solutions build with 0 analyzer warnings.
+
+### Local coverage (Coverlet OpenCover, 2026-10-02)
+
+There has been no SonarQube rescan yet. These numbers come from the same `coverage.opencover.xml` that `scan.sh` uploads, with the `**/Messaging/RabbitMq*.cs` exclusion applied. SonarQube calculates coverage from lines and conditions together and skips generated code, so its numbers will differ slightly.
+
+| Service | Line coverage | Branch coverage | Weakest spots |
+|---|---|---|---|
+| Identity | 91.8% (190/207) | 87.5% (35/40) | `ShoppingAuth` is at 39.3%: `ShoppingJwtAuthenticationExtensions` isn't exercised by Identity's tests. It is covered by Cart's and Catalog's tests, but SonarQube scores each project separately. |
+| Cart | 93.0% (401/431) | 81.9% (77/94) | Guard clauses in `CartItem`, the error path in `AccessTokenLoggingMiddleware`, generated `LoggerMessage` code |
+| Catalog | 99.4% (635/639) | 91.4% (117/128) | `CatalogDatabase` constructor guard |
+
+### Analyzer warnings left in the build (2026-10-02)
+
+- **No build warnings are left.** The last two, CA2227 / CA1002 on `CartDocument.Items`, were fixed. The options were tested against the LiteDB round-trip tests:
+  - `IList<CartItemDocument> Items { get; init; } = [];` clears both warnings, and all 34 Cart tests pass. **Applied.**
+  - `IList<CartItemDocument> Items { get; private set; } = [];` also clears both warnings, and all tests pass.
+  - A getter-only `Items { get; }` **breaks persistence**: LiteDB skips properties without a setter, so carts reload empty and 4 tests fail. This is why the setter has to stay.
+  - `[SuppressMessage]` was not needed.
+- **IDE style warnings shown only by `dotnet format`**, in files not touched by this work:
+  - IDE0007 / IDE0008 (`var` vs. explicit type) in `IdentityServiceTests.cs`, `AccessTokenLoggingMiddleware.cs` and `LiteDbCartRepository.cs`. The two rules contradict each other between files, which points to an `.editorconfig` inconsistency.
+  - IDE0290 (use a primary constructor) in `CartsController.cs`, `AccessTokenLoggingMiddleware.cs` and `CartService.cs`.
+
 ## Next steps (decisions needed from you)
 
-1. **Mark the 4 remaining hotspots Safe** in the SonarQube UI (Security Hotspots tab, on the 9.9 instance at `:9000`) — this is the only thing currently blocking Cart's and Catalog's gates. Alternatively, grant the API call permission and it can be done programmatically.
-2. **Decide on the 3 judgment-call code smells** (S3604/S3928 false positives, ASP0018, CA2227/CA1002) — mark false-positive/won't-fix in Sonar, or apply the code-level suppression/workaround described in each.
-3. **SonarQube version:** stay on 9.9 (mark the primary-constructor false positives manually) or move to 26.9 (they disappear on their own, but brings new findings 4–6 below). If moving, decide fresh-start vs. migrate-existing-data for the Postgres 16→18 / SonarQube 9.9→26.9 jump (data volumes hold scan history, the admin password and tokens).
-4. **If adopting 26.9 (or otherwise worth doing regardless of version):** go-ahead to fix the new findings — S6964 (make `Contracts.cs` numeric fields required/validated), S6966 (`RunAsync`), S1192 (extract the `$categoryId` constant), S8969 (drop the unnecessary `!`), and optionally rewrite the two S2077 SQL lines as fixed queries to close out that false positive permanently.
-5. **Tell me whether to leave the local SonarQube 26.9 instance running or stop it.**
-6. **Commit checkpoint:** once 1–2 (or 1–4) are settled, everything currently staged/uncommitted — `scan.sh`/`README.md`, the 3 Dockerfiles, the Catalog/Cart/Identity code-smell fixes, the new API-level tests, and the RabbitMQ coverage exclusion — is ready to commit as a single change set.
+1. **Start SonarQube and rescan** to confirm the follow-up fixes. Expected result: S6964, S6966, S1192, S8969 and S2077 are gone, along with the 2 SQL hotspots.
+2. **Mark the 2 remaining hotspots Safe:** the `guest/guest` RabbitMQ login in Cart's and Catalog's `appsettings.json`. Alternatively, move those credentials out of `appsettings.json` into environment variables or user-secrets.
+3. ~~**`CartDocument.Items`**~~: done (2026-10-02).
+4. **ASP0018** on `ProductsController.cs:46`: mark it false-positive, or add an `ApiVersion version` parameter.
+5. **SonarQube version:** stay on 9.9 (mark the 19 S3604/S3928 false positives by hand) or move the Docker stack to the current Community Build with Postgres 18. Moving needs a fresh start or a data migration, because the volumes hold scan history, the admin password and tokens.
+6. **Clean up the local 26.9 instance:** revoke the `claude-temp-scan-new` token and change `admin/admin`.
+7. **Commit** the 2026-10-02 follow-up.

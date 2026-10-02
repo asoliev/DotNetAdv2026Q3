@@ -60,6 +60,8 @@ The architecture can be extended with predictable cost because the responsibilit
 
 ## Validation
 
-The solution was validated with `dotnet test` and the Task 2 test suite passed successfully.
+The solution was validated with `dotnet test`. All 34 tests pass: domain and application tests, SQLite repository tests, and API-level tests that run in memory through `WebApplicationFactory`.
+
+`ProductUpsertRequest` requires `categoryId`, `price` and `amount` (`[JsonRequired]`). A request body without one of them returns 400 instead of defaulting it to `0` or an empty GUID.
 
 RabbitMQ must be running locally before exercising the cross-service messaging flow.

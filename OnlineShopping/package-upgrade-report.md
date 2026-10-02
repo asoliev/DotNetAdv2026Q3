@@ -212,7 +212,7 @@ I cleaned up all test data. The existing "Electronics" / "Laptop Pro" data in th
   - update `sonar/scan.sh`.
 - **Existing behavior, not introduced by this upgrade:** a message that always fails (for example, malformed JSON) cycles forever between the main queue and the retry queue, because there's no retry limit. Consider checking the `x-death` count and parking the message after N attempts.
 - **Existing behavior:** if RabbitMQ is down when Cart starts, the consumer's `ExecuteAsync` throws and the host stops. The same thing happened on v6.
-- **Existing analyzer warnings** in files I didn't touch (CA1707 test names, CA1062, CA1305, CA1861, CA1002/CA2227) were left alone.
+- **Existing analyzer warnings** in files I didn't touch (CA1707 test names, CA1062, CA1305, CA1861, CA1002/CA2227) were left alone. *Update:* all of these except CA1002/CA2227 on `CartDocument.Items` were fixed or suppressed later; see `sonarqube-report.md`.
 
 ## Files changed
 
