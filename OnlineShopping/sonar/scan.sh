@@ -12,7 +12,11 @@ solution_path=$2
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 solution_dir="$repo_root/$(dirname -- "$solution_path")"
-coverage_reports_path="$solution_dir/tests/**/TestResults/**/coverage.opencover.xml"
+# Coverage goes to a fresh folder per scan; reports left in tests/**/TestResults by earlier runs
+# describe old line numbers and make the import fail or skew coverage.
+results_dir=$(mktemp -d)
+trap 'rm -rf "$results_dir"' EXIT
+coverage_reports_path="$results_dir/**/coverage.opencover.xml"
 
 dotnet tool restore --tool-manifest "$script_dir/dotnet-tools.json"
 
@@ -32,7 +36,7 @@ dotnet tool run dotnet-sonarscanner begin \
 
 if [ -d "$solution_dir/tests" ]; then
   dotnet build "$repo_root/$solution_path" --no-incremental
-  dotnet test "$repo_root/$solution_path" --no-build --collect "XPlat Code Coverage;Format=opencover"
+  dotnet test "$repo_root/$solution_path" --no-build --collect "XPlat Code Coverage;Format=opencover" --results-directory "$results_dir"
 else
   dotnet build "$repo_root/$solution_path"
 fi

@@ -3,11 +3,12 @@
 **Date:** 2026-09-28, follow-up on 2026-10-02
 **Branch:** `enhance_project`
 **Scope:** all 3 scanned projects (IdentityService, CatalogService, CartService) plus the shared `sonar/scan.sh` tooling
-**Status:** in progress.
+**Status:** all SonarQube findings fixed; only commit and local cleanup remain.
 - Sections 1–6 below were committed in `b4a0bdc`.
 - The 2026-10-02 follow-up code fixes (S6964, S6966, S1192, S8969, S2077, CA2227/CA1002) were committed in `2daaf96` and `1748fdd`. See [Follow-up — 2026-10-02](#follow-up--2026-10-02).
-- The SonarQube 26.9 / Postgres 18 upgrade (`sonar/docker-compose.yml`, `sonar/README.md`) is not committed yet.
-- Sections 1–7 hold the 2026-09-28 numbers. The current numbers are in [SonarQube 26.9 scan — 2026-10-02](#sonarqube-269-scan--2026-10-02).
+- The SonarQube 26.9 / Postgres 18 upgrade and the S2068 fix were committed in `78013f0`.
+- Not committed yet: the ASP0018 fix and the `scan.sh` coverage fix.
+- Sections 1–7 hold the 2026-09-28 numbers. The current numbers are in [Final scan (2026-10-02)](#final-scan-2026-10-02): 0 open issues and all ratings A.
 
 This report replaces the running commentary in `sonar_news.txt` (kept as raw chat history) with a single before/after summary, organized by what was wrong, what was fixed, and what's still open.
 
@@ -106,7 +107,7 @@ All 3 solutions' tests pass after these changes (Cart 31, Catalog 31, Identity 1
 ### 7. Code smells — 3 items needing a decision (open, not done)
 
 1. **S3604 (×15) / S3928 (×4):** false positives from SonarQube 9.9's analyzer (v8.51), which predates C# 12 primary constructors — it misreads fields like `_database = new CatalogDatabase(databasePath)` as "overwritten by a constructor" when there is no other constructor. Confirmed as a genuine analyzer bug: **all 19 disappeared under SonarQube 26.9** with no code changes (see below). No fix needed if/when 26.9 is adopted; otherwise they'd need to be marked false-positive in the 9.9 UI.
-2. **ASP0018** in `ProductsController.cs:46`: likely a false positive — `{version:apiVersion}` in the route is consumed by the API-versioning library, not by the action's parameters. Still present in 26.9. Options: mark false-positive, or add an unused `ApiVersion version` parameter.
+2. **ASP0018** in `ProductsController.cs:46`: likely a false positive — `{version:apiVersion}` in the route is consumed by the API-versioning library, not by the action's parameters. Still present in 26.9. Options: mark false-positive, or add an unused `ApiVersion version` parameter. **Fixed 2026-10-02**, see [ASP0018 fix](#asp0018-fix-2026-10-02).
 3. **CA2227 / CA1002** on `CartDocument.Items`: this is the LiteDB storage model, and LiteDB needs a public settable `List<T>` to deserialize into. Removing the setter risks breaking existing carts. Still present in 26.9. Options: mark won't-fix in SonarQube, or add a targeted `[SuppressMessage]` with justification. **2026-10-02:** a code fix that LiteDB accepts was found, `IList<T>` with an `init` setter. See the follow-up section.
 
 ---
@@ -122,7 +123,7 @@ Separately from the code-quality work, a local (non-Docker) SonarQube **26.9 Com
 | Coverage | 91.8% | 98.1% | 91.1% |
 
 - **Gone under 26.9:** all 19 S3604/S3928 primary-constructor false positives — confirms they were an analyzer limitation, not a real issue.
-- **Still reported under 26.9:** ASP0018 and CA2227/CA1002 (items 2–3 above).
+- **Still reported under 26.9:** ASP0018 and CA2227/CA1002 (items 2–3 above). Both were fixed on 2026-10-02.
 - **New under 26.9** (didn't exist as findings under 9.9's older ruleset):
   - **S6964 ×6** in `Contracts.cs` — non-nullable numeric request fields (`Price`, `Quantity`, etc.) that aren't marked required; an omitted field silently becomes `0` instead of failing validation. Flagged as worth fixing.
   - **S6966 ×3** — `app.Run()` should be `await app.RunAsync()`.
@@ -229,7 +230,7 @@ Because this is the first analysis of each project, the quality gate's "new code
 |---|---|---|---|
 | `csharpsquid:S2068` hard-coded password | `CartService/src/CartService.Api/appsettings.json:5` | Vulnerability | RabbitMQ `guest/guest` dev login. This is the only reason Security is rated C. |
 | `csharpsquid:S2068` hard-coded password | `CatalogService/src/CatalogService.Api/appsettings.json:5` | Vulnerability | Same as above. |
-| `external_roslyn:ASP0018` unused route parameter `version` | `CatalogService/src/CatalogService.Api/Controllers/ProductsController.cs:46` | Info | The route parameter is used by API versioning, not by the action. |
+| `external_roslyn:ASP0018` unused route parameter `version` | `CatalogService/src/CatalogService.Api/ProductsController.cs:46` | Info | The route parameter is used by API versioning, not by the action. |
 
 **Gone compared with earlier scans:**
 
@@ -259,12 +260,58 @@ On the rescan, the second analysis evaluated the gate's new-code conditions, and
 
 Tests: Cart 34/34 and Catalog 34/34 pass, with 0 build warnings.
 
+### ASP0018 fix (2026-10-02)
+
+`GET api/v{version}/categories/{categoryId}/products` was an action on `ProductsController` with a `~/`-rooted template. That template contained `{version}`, and no action parameter bound it, so ASP0018 fired. The parameter is actually consumed by API versioning; class-level `[Route]` templates aren't checked by ASP0018.
+
+- The endpoint moved into a new `CategoryProductsController` with a class-level `[Route("api/v{version:apiVersion}/categories/{categoryId:guid}/products")]`.
+  - The URL, query parameters, paging, response and 404 for an unknown category are unchanged.
+  - The existing `ProductsArePagedAndFilteredByCategory` test still covers it.
+  - In Swagger the endpoint is now listed under *CategoryProducts* instead of *Products*.
+- `ProductResponseMapper` (internal, static) now holds the `Product` → `ProductResponse` / `PageResponse` mapping, which both controllers use. `ProductsController` no longer needs `GetPageInternal`.
+- There are no suppressions.
+
+### `scan.sh` coverage fix (2026-10-02)
+
+The ASP0018 rescan first failed with:
+
+```
+IllegalStateException: Line 134 is out of range in the file CatalogService/src/CatalogService.Api/ProductsController.cs (lines: 131)
+```
+
+**Cause:** `scan.sh` imported every `tests/**/TestResults/**/coverage.opencover.xml`, including reports left over from earlier `dotnet test` runs. Old reports described line numbers of older source files, so:
+
+- a shrunk file made the import fail;
+- otherwise they were merged in silently, which skewed coverage. For example, Catalog moved between 97.6% and 98.3% with no test changes.
+
+**Fix:** each scan now writes coverage to a fresh `mktemp -d` folder (`dotnet test --results-directory`), imports only that, and deletes it on exit. Existing `TestResults` folders are left alone; they are git-ignored.
+
+### Final scan (2026-10-02)
+
+The scan used the fixed `scan.sh`, with exactly 1 coverage report per project.
+
+| Metric | Cart | Catalog | Identity |
+|---|---|---|---|
+| Quality gate (incl. new-code conditions) | Passed | Passed (new-code coverage 100%) | Passed |
+| Coverage | 91.9% | 98.1% | 91.1% |
+| Line / branch coverage | 93.9% / 83.0% | 99.4% / 91.5% | 91.8% / 87.5% |
+| Uncovered lines (of lines to cover) | 25 of 407 | 4 of 648 | 17 of 207 |
+| Bugs / vulnerabilities / code smells / hotspots | 0 / 0 / 0 / 0 | 0 / 0 / 0 / 0 | 0 / 0 / 0 / 0 |
+| Duplication / technical debt | 0% / 0 min | 0% / 0 min | 0% / 0 min |
+| Lines of code | 783 | 1064 | 362 |
+| Reliability / Security / Maintainability | A / A / A | A / A / A | A / A / A |
+
+**Open issues: 0 in all 3 projects.**
+
+These coverage numbers are slightly below the earlier 26.9 scans. Those scans had stale reports merged in, so the numbers above are the accurate ones.
+
 ## Next steps (decisions needed from you)
 
 1. ~~**S2068, the RabbitMQ `guest/guest` login**~~: done (2026-10-02), see above.
-2. **ASP0018** on `ProductsController.cs:46`: mark it false-positive, or add an `ApiVersion version` parameter.
+2. ~~**ASP0018**~~: done (2026-10-02), `CategoryProductsController`.
 3. ~~**`CartDocument.Items`**~~: done (2026-10-02).
 4. ~~**SonarQube version**~~: done (2026-10-02). The Docker stack runs Community Build `26.9.0.129388` (Temurin 25 inside the image) on `postgres:18.6`, and all 3 projects have been scanned.
    - The old 9.9 volumes are kept for rollback; see `sonar/README.md` to remove them.
 5. **Clean up the standalone local 26.9 instance** (`~/Applications/sonarqube-26.9.0.129388`, port 9100): reset its admin password and revoke the `claude-temp-scan-new` token.
-6. **Commit** the SonarQube upgrade docs (`sonar/docker-compose.yml`, `sonar/README.md`, this report) and the S2068 fix.
+6. **Optional:** the IDE0007/IDE0008/IDE0290 style warnings that only `dotnet format` reports; old `TestResults` folders can be deleted to free disk space.
+7. **Commit** the ASP0018 fix, the `scan.sh` fix and these docs. The SonarQube upgrade and S2068 were committed in `78013f0`.

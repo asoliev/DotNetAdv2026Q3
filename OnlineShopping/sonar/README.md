@@ -61,8 +61,9 @@ export SONAR_TOKEN=<your-token>
 When a solution has a `tests/` folder, the helper:
 
 - rebuilds the whole solution, so every project is analyzed, including ones the tests don't reference;
-- runs the tests with Coverlet in OpenCover format;
-- imports `tests/**/TestResults/**/coverage.opencover.xml`. SonarC# does not read Cobertura reports.
+- runs the tests with Coverlet in OpenCover format, writing to a fresh temporary folder that is deleted after the scan;
+- imports only that run's `coverage.opencover.xml`. SonarC# does not read Cobertura reports.
+  - Older reports in `tests/**/TestResults` are deliberately not imported: they describe old line numbers, and a shrunk file makes the scanner fail with "Line N is out of range".
 
 The RabbitMQ adapters (`**/Messaging/RabbitMq*.cs`) are excluded from coverage because they only run against a live broker; they are still analyzed for issues.
 

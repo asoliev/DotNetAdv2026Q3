@@ -31,20 +31,26 @@ public sealed class ProductsController(ProductService productService, IProductRe
     public async Task<ActionResult<ProductResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         Product? product = await _productRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        return product is null ? NotFound() : Ok(MapToResponse(product));
+        return product is null ? NotFound() : Ok(ProductResponseMapper.ToResponse(product));
     }
 
     /// <summary>
     /// Returns a page of products.
     /// </summary>
+    /// <remarks>
+    /// <c>GET categories/{categoryId}/products</c> in <see cref="CategoryProductsController"/> serves the same page by route.
+    /// </remarks>
     [HttpGet]
-    public Task<ActionResult<PageResponse<ProductResponse>>> GetPage([FromQuery] Guid? categoryId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) => GetPageInternal(categoryId, pageNumber, pageSize, cancellationToken);
+    public async Task<ActionResult<PageResponse<ProductResponse>>> GetPage([FromQuery] Guid? categoryId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        if (categoryId is not null && !await _categoryRepository.ExistsAsync(categoryId.Value, cancellationToken).ConfigureAwait(false))
+        {
+            return NotFound();
+        }
 
-    /// <summary>
-    /// Returns a page of products for a specific category.
-    /// </summary>
-    [HttpGet("~/api/v{version:apiVersion}/categories/{categoryId:guid}/products")]
-    public Task<ActionResult<PageResponse<ProductResponse>>> GetPageByCategory(Guid categoryId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) => GetPageInternal(categoryId, pageNumber, pageSize, cancellationToken);
+        PagedResult<Product> page = await _productService.GetPageAsync(categoryId, pageNumber, pageSize, cancellationToken).ConfigureAwait(false);
+        return Ok(ProductResponseMapper.ToPageResponse(page));
+    }
 
     /// <summary>
     /// Creates a product.
@@ -64,7 +70,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
             var product = new Product(Guid.NewGuid(), request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
             await _productService.AddAsync(product, cancellationToken).ConfigureAwait(false);
             await _productEventPublisher.PublishUpsertedAsync(MapToMessage(product), cancellationToken).ConfigureAwait(false);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, MapToResponse(product));
+            return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, ProductResponseMapper.ToResponse(product));
         }
         catch (InvalidOperationException exception)
         {
@@ -116,22 +122,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
         return NoContent();
     }
 
-    private async Task<ActionResult<PageResponse<ProductResponse>>> GetPageInternal(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken)
-    {
-        if (categoryId is not null && !await _categoryRepository.ExistsAsync(categoryId.Value, cancellationToken).ConfigureAwait(false))
-        {
-            return NotFound();
-        }
-
-        PagedResult<Product> page = await _productService.GetPageAsync(categoryId, pageNumber, pageSize, cancellationToken).ConfigureAwait(false);
-        return Ok(new PageResponse<ProductResponse>(page.Items.Select(MapToResponse).ToList(), page.TotalCount, page.PageNumber, page.PageSize));
-    }
-
-    private static ProductResponse MapToResponse(Product product) => new ProductResponse(product.Id, product.Name, product.Description, MapImage(product.Image), product.CategoryId, product.Price, product.Amount);
-
     private static ProductChangedMessage MapToMessage(Product product) => new ProductChangedMessage(product.Id, product.Name, product.Description, MapProductImage(product.Image), product.CategoryId, product.Price, product.Amount);
-
-    private static ImageResponse? MapImage(ImageInfo? image) => image is null ? null : new ImageResponse(image.Url, image.AltText);
 
     private static ImageInfo? MapImage(ImageRequest? image) => image is null ? null : new ImageInfo(image.Url, image.AltText);
 
