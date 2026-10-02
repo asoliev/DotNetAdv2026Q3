@@ -123,6 +123,20 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
         await AssertStatusAsync(client, HttpMethod.Get, "api/v1/categories/not-a-guid", HttpStatusCode.NotFound);
     }
 
+    [Theory]
+    [InlineData("""{ "name": "Phone", "price": 1.0, "amount": 1 }""")]
+    [InlineData("""{ "name": "Phone", "categoryId": "7f8e0a52-8d2c-4a39-9b0e-2f8f3c1d4a10", "amount": 1 }""")]
+    [InlineData("""{ "name": "Phone", "categoryId": "7f8e0a52-8d2c-4a39-9b0e-2f8f3c1d4a10", "price": 1.0 }""")]
+    public async Task ProductWithMissingRequiredFieldIsRejected(string json)
+    {
+        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using var body = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        using HttpResponseMessage response = await client.PostAsync(Relative("api/v1/products"), body, Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Fact]
     public async Task ProductCanBeCreatedReadUpdatedAndDeletedAndPublishesEvents()
     {

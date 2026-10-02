@@ -109,6 +109,20 @@ public sealed class CartApiTests(CartApiFactory factory) : IClassFixture<CartApi
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("""{ "name": "Mouse", "price": 25.0, "quantity": 1 }""")]
+    [InlineData("""{ "id": "7f8e0a52-8d2c-4a39-9b0e-2f8f3c1d4a10", "name": "Mouse", "quantity": 1 }""")]
+    [InlineData("""{ "id": "7f8e0a52-8d2c-4a39-9b0e-2f8f3c1d4a10", "name": "Mouse", "price": 25.0 }""")]
+    public async Task ItemWithMissingRequiredFieldIsRejected(string json)
+    {
+        using HttpClient client = factory.CreateClient($"Bearer {TestTokens.Manager}");
+        using var body = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        using HttpResponseMessage response = await client.PostAsync(Relative("api/v1/carts/cart-1/items"), body, Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Fact]
     public async Task MiddlewareRejectsMissingDependencies()
     {
