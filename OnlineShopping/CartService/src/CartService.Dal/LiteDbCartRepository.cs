@@ -51,7 +51,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
 
     private static CartDocument MapToDocument(Cart cart)
     {
-        CartDocument document = new CartDocument
+        var document = new CartDocument
         {
             Id = cart.Id
         };

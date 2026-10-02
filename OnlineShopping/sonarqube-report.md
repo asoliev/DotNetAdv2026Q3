@@ -198,8 +198,11 @@ There has been no SonarQube rescan yet. These numbers come from the same `covera
   - A getter-only `Items { get; }` **breaks persistence**: LiteDB skips properties without a setter, so carts reload empty and 4 tests fail. This is why the setter has to stay.
   - `[SuppressMessage]` was not needed.
 - **IDE style warnings shown only by `dotnet format`**, in files not touched by this work:
-  - IDE0007 / IDE0008 (`var` vs. explicit type) in `IdentityServiceTests.cs`, `AccessTokenLoggingMiddleware.cs` and `LiteDbCartRepository.cs`. The two rules contradict each other between files, which points to an `.editorconfig` inconsistency.
+  - IDE0007 / IDE0008 (`var` vs. explicit type) in `IdentityServiceTests.cs`, `AccessTokenLoggingMiddleware.cs` and `LiteDbCartRepository.cs`.
   - IDE0290 (use a primary constructor) in `CartsController.cs`, `AccessTokenLoggingMiddleware.cs` and `CartService.cs`.
+  - **Fixed 2026-10-02.** The `var` rules don't contradict each other. `.editorconfig` asks for `var` with built-in and apparent types and an explicit type everywhere else, and each file broke one half of that.
+  - **Why the build never showed them:** `.editorconfig` sets their severity with the `option = value:warning` suffix. `dotnet format` honors that suffix, but the compiler (`EnforceCodeStyleInBuild`) only honors `dotnet_diagnostic.IDExxxx.severity` lines.
+  - Still open: about 35 info-level suggestions. These are IDE0090 (`new()`), IDE0300/IDE0301/IDE0305 (collection expressions) and IDE0017 (object initializer).
 
 ## SonarQube 26.9 scan — 2026-10-02
 

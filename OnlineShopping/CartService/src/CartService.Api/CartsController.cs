@@ -17,14 +17,9 @@ namespace CartService.Api;
 [ApiVersion("1.0")]
 [ApiVersion("2.0")]
 [Route("api/v{version:apiVersion}/carts/{cartKey}")]
-public sealed class CartsController : ControllerBase
+public sealed class CartsController(CartManager cartService) : ControllerBase
 {
-    private readonly CartManager _cartService;
-
-    public CartsController(CartManager cartService)
-    {
-        _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
-    }
+    private readonly CartManager _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
 
     /// <summary>
     /// Returns cart information for version 1.
