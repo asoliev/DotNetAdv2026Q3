@@ -6,7 +6,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
       "UpstreamPathTemplate": "/api/v1/categories",
-      "UpstreamHttpMethod": [ "GET" ]
+      "UpstreamHttpMethod": [ "GET" ],
+      "CacheOptions": { "TtlSeconds": 60 }
     },
     {
       "Key": "catalog-category-get",
@@ -22,7 +23,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
       "UpstreamPathTemplate": "/api/v1/categories/{categoryId}/products",
-      "UpstreamHttpMethod": [ "GET" ]
+      "UpstreamHttpMethod": [ "GET" ],
+      "CacheOptions": { "TtlSeconds": 60 }
     },
     {
       "Key": "catalog-category-create",
@@ -52,7 +54,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
       "UpstreamPathTemplate": "/api/v1/products",
-      "UpstreamHttpMethod": [ "GET" ]
+      "UpstreamHttpMethod": [ "GET" ],
+      "CacheOptions": { "TtlSeconds": 60 }
     },
     {
       "Key": "catalog-product-get",

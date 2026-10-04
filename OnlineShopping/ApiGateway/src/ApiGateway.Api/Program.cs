@@ -1,5 +1,6 @@
 using ApiGateway.Api;
 
+using Ocelot.Cache.CacheManager;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 
@@ -9,7 +10,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 IConfiguration routeConfiguration = GatewayRouteConfiguration.Load(builder.Configuration, builder.Environment.ContentRootPath);
 
 builder.Services.AddShoppingJwtAuthentication();
-builder.Services.AddOcelot(routeConfiguration);
+builder.Services.AddOcelot(routeConfiguration)
+	.AddCacheManager(options => options.WithDictionaryHandle());
 
 WebApplication app = builder.Build();
 
