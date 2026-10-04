@@ -12,6 +12,7 @@ checked_solutions=
 files_CartService=
 files_CatalogService=
 files_IdentityService=
+files_ApiGateway=
 
 default_remote_ref() {
   git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main
@@ -37,7 +38,7 @@ queue_solution() {
 }
 
 add_file_for_solution() {
-  key=$1   # CartService | CatalogService | IdentityService
+  key=$1   # CartService | CatalogService | IdentityService | ApiGateway
   file=$2
   eval "list=\$files_${key}"
   case " $list " in
@@ -108,13 +109,19 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         queue_solution "$solution_root/IdentityService/IdentityService.slnx"
         add_file_for_solution "IdentityService" "$abs_file"
         ;;
+      OnlineShopping/ApiGateway/*)
+        queue_solution "$solution_root/ApiGateway/ApiGateway.slnx"
+        add_file_for_solution "ApiGateway" "$abs_file"
+        ;;
       OnlineShopping/Shared/ShoppingAuth/*)
         queue_solution "$solution_root/CartService/CartService.slnx"
         queue_solution "$solution_root/CatalogService/CatalogService.slnx"
         queue_solution "$solution_root/IdentityService/IdentityService.slnx"
+        queue_solution "$solution_root/ApiGateway/ApiGateway.slnx"
         add_file_for_solution "CartService" "$abs_file"
         add_file_for_solution "CatalogService" "$abs_file"
         add_file_for_solution "IdentityService" "$abs_file"
+        add_file_for_solution "ApiGateway" "$abs_file"
         ;;
     esac
   done
@@ -122,6 +129,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   run_format_for_solution "$solution_root/CartService/CartService.slnx"   "CartService"
   run_format_for_solution "$solution_root/CatalogService/CatalogService.slnx" "CatalogService"
   run_format_for_solution "$solution_root/IdentityService/IdentityService.slnx" "IdentityService"
+  run_format_for_solution "$solution_root/ApiGateway/ApiGateway.slnx" "ApiGateway"
 
   for solution in $checked_solutions; do
     run_build_for_solution "$solution"
