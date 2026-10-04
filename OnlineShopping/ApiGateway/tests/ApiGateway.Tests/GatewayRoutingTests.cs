@@ -220,7 +220,7 @@ public sealed class GatewayRoutingTests
 
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         Uri location = Assert.IsType<Uri>(created.Headers.Location);
-        Assert.Equal("http://localhost:5000", location.GetLeftPart(UriPartial.Authority));
+        Assert.Equal("http://localhost:5004", location.GetLeftPart(UriPartial.Authority));
         Assert.Equal($"/api/v1/categories/{categoryId}?source=created", location.PathAndQuery);
 
         using HttpResponseMessage loaded = await client.GetAsync(new Uri(location.PathAndQuery, UriKind.Relative), Ct);

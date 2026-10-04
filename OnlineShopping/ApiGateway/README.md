@@ -68,9 +68,9 @@ Cached lists can remain stale for up to 60 seconds after a Catalog write. Detail
 
 ## Smoke Workflow For T16
 
-This workflow is a handoff, not a claim that it has been run. Start the stack and wait for Identity, Catalog, Cart, and Gateway to be ready before issuing requests. It requires `curl` and `jq`. The sample creates unique Catalog records and a unique cart; use the returned IDs rather than seeded data or `Location` headers.
+This is the reproducible T16 smoke workflow. T16 executed equivalent real-token HTTP requests with an in-memory runner; the `curl` block itself was syntax-checked but not executed verbatim. Start the stack and wait for Identity, Catalog, Cart, and Gateway to be ready before issuing requests. It requires `curl` and `jq`. The sample creates unique Catalog records and a unique cart; use the returned IDs rather than seeded data or `Location` headers.
 
-The Catalog create `Location` transform currently uses `GlobalConfiguration.BaseUrl` from `ocelot.json` (`http://localhost:5000`), while Compose publishes the gateway on port `5004`. The response-body IDs below avoid relying on that mismatch. T16 should verify and resolve the public `Location` authority before treating it as a usable Compose URL.
+Catalog create `Location` headers use `GlobalConfiguration.BaseUrl` from `ocelot.json`, now `http://localhost:5004`, matching both documented launch modes. The structured route configuration is also added to application configuration so Ocelot's header-placeholder resolver reads that value. If deploying under a different public origin, coordinate this value with the published gateway URL.
 
 Run from the repository root in one shell. Demo credentials are listed in the [Identity Service README](../IdentityService/README.md); these commands keep issued tokens in shell variables and do not print them.
 
@@ -127,9 +127,21 @@ curl -i -H "Authorization: Bearer $MANAGER_TOKEN" -H 'Content-Type: application/
 	--data-binary "$CATEGORY_BODY" "$GATEWAY_URL/api/v1/categories"
 ```
 
-For the cache acceptance check, use a separate unique list query: prime it, mutate matching Catalog data as admin, verify it remains cached before expiry, then verify it refreshes after the 60-second TTL. This smoke workflow does not measure cache expiry.
+For the cache acceptance check, use a separate unique list query: prime it, mutate matching Catalog data as admin, verify it remains cached before expiry, then verify it refreshes after the 60-second TTL. T16 measured this behavior separately; see the acceptance record below.
 
 The example removes its Cart item but leaves its generated category and product in the named Catalog volume. The timestamped names keep repeated runs distinct; remove those records as admin after acceptance if they are no longer needed.
+
+## T16 Acceptance Record
+
+Acceptance was run on 2026-10-04. All four suites passed: Catalog 37/37, Identity 16/16, Cart 34/34, and Gateway 47/47. Builds and scoped `dotnet format --verify-no-changes --include` checks passed for all four solutions; shared-auth and only the C# paths changed by their tasks were included.
+
+`docker compose -f OnlineShopping/docker-compose.yml up --build -d` built all four service images and started Identity, Catalog, Cart, and Gateway; RabbitMQ became healthy. Bounded HTTP readiness probes passed for the Identity, Catalog, Cart Swagger documents and anonymous Gateway category list. Existing named volumes were retained.
+
+Twenty-four real-token HTTP assertions passed. They covered direct Catalog anonymous/invalid-token 401s, customer/Manager 403s, admin mutation success; gateway admin Catalog create, anonymous properties/aggregate/paginated reads, aggregate unknown-product 404, Manager Catalog denial, admin-only Cart denial, and customer Cart add/read/delete. Swagger UI “Try it out” returned 200 for Catalog v1, Cart v1, and Cart v2 operations; all three Gateway Swagger documents returned 200. The 60-second list cache stayed stale after a matching write and refreshed after about 60 seconds. The runner used a unique query, bounded asynchronous polling, and removed only generated acceptance categories/products; no volumes were deleted.
+
+**Initial blocker, resolved:** Catalog create initially returned a `Location` authority of `http://localhost:5000` instead of the published port 5004. User-authorized investigation found two causes: the configured public URL was stale, and Ocelot's header-placeholder resolver read application configuration rather than the separate route-registration configuration, falling back to port 5000. The public URL is now 5004 and route configuration is available to that resolver.
+
+The focused Location regression passed 1/1 and the full Gateway suite passed 47/47 after correction; scoped format, Gateway build, Compose validation and gateway image rebuild passed. Live Category and Product creates returned 201 with Location URLs on port 5004; following both URLs returned the correct resources. The rebuilt gateway passed anonymous aggregate 200/404, Manager Catalog denial, admin Cart denial and customer reads for both Cart versions, and all three Swagger documents. A fresh bounded cache check observed stale data after a write and refresh at 60.3 seconds. Generated records were removed and volumes preserved. Earlier unaffected service-suite/build/format and browser Try it out results remain the acceptance evidence for those surfaces. T16 is Complete.
 
 ## Development Limitations
 

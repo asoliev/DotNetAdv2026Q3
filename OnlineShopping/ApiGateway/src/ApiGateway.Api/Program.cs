@@ -11,6 +11,7 @@ using ShoppingAuth;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 IConfiguration routeConfiguration = GatewayRouteConfiguration.Load(builder.Configuration, builder.Environment.ContentRootPath);
+builder.Configuration.AddConfiguration(routeConfiguration);
 string? aggregateTimeoutSetting = builder.Configuration["Gateway:AggregateTimeoutSeconds"];
 if (aggregateTimeoutSetting is not null)
 {
