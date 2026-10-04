@@ -87,6 +87,25 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # ApiGateway — public entry point for Catalog and Cart
+  # ─────────────────────────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+    image: online-shopping/api-gateway:local
+    container_name: online-shopping-api-gateway
+    ports:
+      - "5004:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Downstream__Catalog__BaseUrl: http://catalog-service:8080
+      Downstream__Cart__BaseUrl: http://cart-service:8080
+    depends_on:
+      - catalog-service
+      - cart-service
+
 # Named volumes — Docker manages the actual storage location.
 # Data in these volumes persists across 'docker compose down' and restarts.
 # Use 'docker compose down -v' to also remove them (wipes all data).

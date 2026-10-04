@@ -1,0 +1,168 @@
+{
+  "Routes": [
+    {
+      "Key": "catalog-categories-list",
+      "DownstreamPathTemplate": "/api/v1/categories",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/categories",
+      "UpstreamHttpMethod": [ "GET" ],
+      "CacheOptions": { "TtlSeconds": 60 }
+    },
+    {
+      "Key": "catalog-category-get",
+      "DownstreamPathTemplate": "/api/v1/categories/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/categories/{id}",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
+      "Key": "catalog-category-products-list",
+      "Priority": 2,
+      "DownstreamPathTemplate": "/api/v1/categories/{categoryId}/products",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/categories/{categoryId}/products",
+      "UpstreamHttpMethod": [ "GET" ],
+      "CacheOptions": { "TtlSeconds": 60 }
+    },
+    {
+      "Key": "catalog-category-create",
+      "DownstreamPathTemplate": "/api/v1/categories",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/categories",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] },
+      "RouteClaimsRequirement": { "role": "admin" },
+      "DownstreamHeaderTransform": { "Location": "{DownstreamBaseUrl}, {BaseUrl}" },
+      "HttpHandlerOptions": { "AllowAutoRedirect": false }
+    },
+    {
+      "Key": "catalog-category-write",
+      "DownstreamPathTemplate": "/api/v1/categories/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/categories/{id}",
+      "UpstreamHttpMethod": [ "PUT", "PATCH", "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] },
+      "RouteClaimsRequirement": { "role": "admin" }
+    },
+    {
+      "Key": "catalog-products-list",
+      "DownstreamPathTemplate": "/api/v1/products",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/products",
+      "UpstreamHttpMethod": [ "GET" ],
+      "CacheOptions": { "TtlSeconds": 60 }
+    },
+    {
+      "Key": "catalog-product-get",
+      "DownstreamPathTemplate": "/api/v1/products/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/products/{id}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Timeout": 5
+    },
+    {
+      "Key": "catalog-product-properties",
+      "DownstreamPathTemplate": "/api/v1/products/{id}/properties",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/products/{id}/properties",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Timeout": 5
+    },
+    {
+      "Key": "catalog-product-create",
+      "DownstreamPathTemplate": "/api/v1/products",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/products",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] },
+      "RouteClaimsRequirement": { "role": "admin" },
+      "DownstreamHeaderTransform": { "Location": "{DownstreamBaseUrl}, {BaseUrl}" },
+      "HttpHandlerOptions": { "AllowAutoRedirect": false }
+    },
+    {
+      "Key": "catalog-product-write",
+      "DownstreamPathTemplate": "/api/v1/products/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
+      "UpstreamPathTemplate": "/api/v1/products/{id}",
+      "UpstreamHttpMethod": [ "PUT", "PATCH", "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] },
+      "RouteClaimsRequirement": { "role": "admin" }
+    },
+    {
+      "Key": "cart-v1-get",
+      "DownstreamPathTemplate": "/api/v1/carts/{cartKey}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/v1/carts/{cartKey}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    },
+    {
+      "Key": "cart-v1-add",
+      "DownstreamPathTemplate": "/api/v1/carts/{cartKey}/items",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/v1/carts/{cartKey}/items",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    },
+    {
+      "Key": "cart-v1-delete",
+      "DownstreamPathTemplate": "/api/v1/carts/{cartKey}/items/{itemId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/v1/carts/{cartKey}/items/{itemId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    },
+    {
+      "Key": "cart-v2-get",
+      "DownstreamPathTemplate": "/api/v2/carts/{cartKey}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/v2/carts/{cartKey}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    },
+    {
+      "Key": "cart-v2-add",
+      "DownstreamPathTemplate": "/api/v2/carts/{cartKey}/items",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/v2/carts/{cartKey}/items",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    },
+    {
+      "Key": "cart-v2-delete",
+      "DownstreamPathTemplate": "/api/v2/carts/{cartKey}/items/{itemId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/v2/carts/{cartKey}/items/{itemId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    }
+  ],
+  "Aggregates": [
+    {
+      "RouteKeys": [ "catalog-product-get", "catalog-product-properties" ],
+      "Priority": 2,
+      "UpstreamPathTemplate": "/api/v1/products/{id}/aggregate",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Aggregator": "ProductDetailsAggregator"
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5004"
+  }
+}

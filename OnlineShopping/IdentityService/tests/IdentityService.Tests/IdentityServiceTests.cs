@@ -9,10 +9,41 @@ using IdentityService.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
+using ShoppingAuth;
+
 namespace IdentityService.Tests;
 
 public class IdentityServiceTests
 {
+    [Fact]
+    public void Admin_ValidateCredentialsReturnsOnlyAdminRole()
+    {
+        var store = new IdentityStore();
+
+        IdentityUser? user = store.ValidateCredentials("admin@shop.local", "Admin123!");
+
+        Assert.NotNull(user);
+        Assert.Equal("admin@shop.local", user!.UserName);
+        Assert.Equal([AuthRoles.Admin], user.Roles);
+    }
+
+    [Fact]
+    public void Admin_CreateTokensIncludesOnlyAdminRoleClaim()
+    {
+        var store = new IdentityStore();
+        var service = new TokenService(store);
+        IdentityUser admin = store.ValidateCredentials("admin@shop.local", "Admin123!")!;
+
+        AuthTokenResponse response = service.CreateTokens(admin);
+        JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken);
+        string[] roleClaims = [.. token.Claims.Where(claim => claim.Type == "role").Select(claim => claim.Value)];
+
+        Assert.Equal([AuthRoles.Admin], response.Roles);
+        Assert.Equal([AuthRoles.Admin], roleClaims);
+        Assert.DoesNotContain(AuthRoles.Manager, roleClaims);
+        Assert.DoesNotContain(AuthRoles.StoreCustomer, roleClaims);
+    }
+
     [Fact]
     public void ValidateCredentials_ReturnsUserForKnownAccount()
     {

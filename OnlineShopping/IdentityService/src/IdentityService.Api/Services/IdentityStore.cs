@@ -15,9 +15,11 @@ public sealed class IdentityStore
 
     public IdentityStore()
     {
+        var admin = new IdentityUser("admin@shop.local", "Admin123!", "Catalog Admin", [AuthRoles.Admin]);
         var manager = new IdentityUser("manager@shop.local", "Manager123!", "Catalog Manager", [AuthRoles.Manager]);
         var customer = new IdentityUser("customer@shop.local", "Customer123!", "Store Customer", [AuthRoles.StoreCustomer]);
 
+        _users[admin.UserName] = admin;
         _users[manager.UserName] = manager;
         _users[customer.UserName] = customer;
     }

@@ -35,6 +35,29 @@ public sealed class ProductsController(ProductService productService, IProductRe
     }
 
     /// <summary>
+    /// Returns fixed demonstration properties for a product.
+    /// </summary>
+    /// <remarks>
+    /// These hardcoded values are examples, not persisted product specifications.
+    /// </remarks>
+    [HttpGet("{id:guid}/properties")]
+    public async Task<ActionResult<Dictionary<string, string>>> GetProperties(Guid id, CancellationToken cancellationToken)
+    {
+        Product? product = await _productRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        if (product is null)
+        {
+            return NotFound();
+        }
+
+        Dictionary<string, string> properties = new()
+        {
+            ["category"] = "Samsung",
+            ["model"] = "s10",
+        };
+        return Ok(properties);
+    }
+
+    /// <summary>
     /// Returns a page of products.
     /// </summary>
     /// <remarks>
@@ -55,7 +78,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// <summary>
     /// Creates a product.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpPost]
     public Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -81,7 +104,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// <summary>
     /// Updates a product.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpPut("{id:guid}")]
     public Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -107,7 +130,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// <summary>
     /// Deletes a product.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
