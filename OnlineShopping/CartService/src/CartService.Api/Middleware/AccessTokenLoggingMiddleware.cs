@@ -1,18 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
+
 using Microsoft.IdentityModel.Tokens;
 
 namespace CartService.Api.Middleware;
 
-public sealed partial class AccessTokenLoggingMiddleware
+public sealed partial class AccessTokenLoggingMiddleware(RequestDelegate next, ILogger<AccessTokenLoggingMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<AccessTokenLoggingMiddleware> _logger;
-
-    public AccessTokenLoggingMiddleware(RequestDelegate next, ILogger<AccessTokenLoggingMiddleware> logger)
-    {
-        _next = next ?? throw new ArgumentNullException(nameof(next));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly RequestDelegate _next = next ?? throw new ArgumentNullException(nameof(next));
+    private readonly ILogger<AccessTokenLoggingMiddleware> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public Task InvokeAsync(HttpContext context)
     {
@@ -23,10 +18,10 @@ public sealed partial class AccessTokenLoggingMiddleware
 
     private async Task InvokeCoreAsync(HttpContext context)
     {
-        string authorization = context.Request.Headers.Authorization.ToString();
+        var authorization = context.Request.Headers.Authorization.ToString();
         if (authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            string token = authorization[7..].Trim();
+            var token = authorization[7..].Trim();
             try
             {
                 JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);

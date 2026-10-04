@@ -57,6 +57,8 @@ The design can be extended with limited impact if new requirements appear.
 
 ## Validation
 
-The solution was validated with `dotnet test` and the Task 1 test suite passed successfully.
+The solution was validated with `dotnet test`. All 34 tests pass: business-logic tests, a LiteDB repository round-trip test, API-level tests through `WebApplicationFactory`, and RabbitMQ message-handler tests.
+
+`CartItemRequest` requires `id`, `price` and `quantity` (`[JsonRequired]`). A request body without one of them returns 400 instead of defaulting it to `0` or an empty GUID.
 
 RabbitMQ must be running locally before exercising the cross-service messaging flow.

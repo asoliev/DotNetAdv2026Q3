@@ -30,7 +30,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        IReadOnlyList<Cart> carts = GetCollection().FindAll().Select(MapToDomain).ToList();
+        IReadOnlyList<Cart> carts = [.. GetCollection().FindAll().Select(MapToDomain)];
         return Task.FromResult<IReadOnlyList<Cart>>(carts);
     }
 
@@ -51,7 +51,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
 
     private static CartDocument MapToDocument(Cart cart)
     {
-        CartDocument document = new CartDocument
+        var document = new CartDocument
         {
             Id = cart.Id
         };
@@ -64,11 +64,11 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
         return document;
     }
 
-    private static Cart MapToDomain(CartDocument document) => new Cart(
+    private static Cart MapToDomain(CartDocument document) => new(
             document.Id,
             document.Items.Select(MapItemToDomain));
 
-    private static CartItemDocument MapItemToDocument(CartItem item) => new CartItemDocument
+    private static CartItemDocument MapItemToDocument(CartItem item) => new()
     {
         Id = item.Id,
         Name = item.Name,
@@ -83,7 +83,7 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
         Quantity = item.Quantity
     };
 
-    private static CartItem MapItemToDomain(CartItemDocument document) => new CartItem(
+    private static CartItem MapItemToDomain(CartItemDocument document) => new(
             document.Id,
             document.Name,
             document.Image is null

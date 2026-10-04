@@ -12,7 +12,11 @@ solution_path=$2
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 solution_dir="$repo_root/$(dirname -- "$solution_path")"
-coverage_reports_path="$solution_dir/tests/**/TestResults/**/coverage.cobertura.xml"
+# Coverage goes to a fresh folder per scan; reports left in tests/**/TestResults by earlier runs
+# describe old line numbers and make the import fail or skew coverage.
+results_dir=$(mktemp -d)
+trap 'rm -rf "$results_dir"' EXIT
+coverage_reports_path="$results_dir/**/coverage.opencover.xml"
 
 dotnet tool restore --tool-manifest "$script_dir/dotnet-tools.json"
 
@@ -22,15 +26,20 @@ if [ -z "$SONAR_TOKEN" ]; then
   exit 1
 fi
 
+# Defaults to the Docker instance; override to scan another server, e.g. a local install.
+SONAR_HOST_URL=${SONAR_HOST_URL:-http://localhost:9000}
+
 cd "$script_dir"
 dotnet tool run dotnet-sonarscanner begin \
   /k:"$project_key" \
-  /d:sonar.host.url="http://localhost:9000" \
+  /d:sonar.host.url="$SONAR_HOST_URL" \
   /d:sonar.token="$SONAR_TOKEN" \
-  /d:sonar.cs.cobertura.reportsPaths="$coverage_reports_path"
+  /d:sonar.cs.opencover.reportsPaths="$coverage_reports_path" \
+  /d:sonar.coverage.exclusions="**/Messaging/RabbitMq*.cs"
 
 if [ -d "$solution_dir/tests" ]; then
-  dotnet test "$repo_root/$solution_path" --collect "XPlat Code Coverage"
+  dotnet build "$repo_root/$solution_path" --no-incremental
+  dotnet test "$repo_root/$solution_path" --no-build --collect "XPlat Code Coverage;Format=opencover" --results-directory "$results_dir"
 else
   dotnet build "$repo_root/$solution_path"
 fi

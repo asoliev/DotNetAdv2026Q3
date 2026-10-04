@@ -26,21 +26,31 @@ public sealed class ProductService(IProductRepository productRepository, ICatego
         return _productRepository.GetPageAsync(categoryId, pageNumber, pageSize, cancellationToken);
     }
 
-    public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
+    public Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(product);
+        return AddValidatedAsync(product, cancellationToken);
+    }
+
+    public Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        return UpdateValidatedAsync(product, cancellationToken);
+    }
+
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => _productRepository.DeleteAsync(id, cancellationToken);
+
+    private async Task AddValidatedAsync(Product product, CancellationToken cancellationToken)
+    {
         await EnsureCategoryExistsAsync(product.CategoryId, cancellationToken).ConfigureAwait(false);
         await _productRepository.AddAsync(product, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    private async Task UpdateValidatedAsync(Product product, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(product);
         await EnsureCategoryExistsAsync(product.CategoryId, cancellationToken).ConfigureAwait(false);
         await _productRepository.UpdateAsync(product, cancellationToken).ConfigureAwait(false);
     }
-
-    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => _productRepository.DeleteAsync(id, cancellationToken);
 
     private async Task EnsureCategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken)
     {

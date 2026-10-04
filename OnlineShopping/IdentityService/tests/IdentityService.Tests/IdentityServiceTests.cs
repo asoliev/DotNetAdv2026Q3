@@ -1,5 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 using IdentityService.Api.Controllers;
@@ -75,7 +75,7 @@ public class IdentityServiceTests
         JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken);
 
         Assert.Contains("Manager", response.Roles);
-        Assert.Equal(new[] { "Create", "Delete", "Read", "Update" }, response.Permissions);
+        Assert.Equal(["Create", "Delete", "Read", "Update"], response.Permissions);
         Assert.Equal("manager@shop.local", token.Subject);
         Assert.Equal("Catalog Manager", token.Claims.First(claim => claim.Type == "name").Value);
         Assert.Contains(token.Claims.Where(claim => claim.Type == "role").Select(claim => claim.Value), role => role == "Manager");
@@ -94,7 +94,7 @@ public class IdentityServiceTests
 
         AuthTokenResponse response = service.RefreshTokens(refreshToken);
 
-        Assert.Equal(new[] { "Store customer" }, response.Roles);
+        Assert.Equal(["Store customer"], response.Roles);
         Assert.Contains("Read", response.Permissions);
         Assert.NotEqual(refreshToken.TokenHash, response.RefreshToken);
     }
@@ -127,7 +127,7 @@ public class IdentityServiceTests
         ActionResult<AuthTokenResponse> result = controller.CreateToken(new LoginRequest("manager@shop.local", "Manager123!"));
 
         OkObjectResult ok = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<AuthTokenResponse>(ok.Value);
+        AuthTokenResponse response = Assert.IsType<AuthTokenResponse>(ok.Value);
         Assert.False(string.IsNullOrWhiteSpace(response.AccessToken));
     }
 
@@ -151,39 +151,40 @@ public class IdentityServiceTests
         ActionResult<AuthTokenResponse> result = controller.RefreshToken(new RefreshTokenRequest(refreshToken.TokenHash));
 
         OkObjectResult ok = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<AuthTokenResponse>(ok.Value);
+        AuthTokenResponse response = Assert.IsType<AuthTokenResponse>(ok.Value);
         Assert.Contains("Store customer", response.Roles);
     }
 
     [Fact]
     public void Verify_UsesPrincipalClaims()
     {
-        var controller = new AuthController(new IdentityStore(), new TokenService(new IdentityStore()));
-        controller.ControllerContext = new ControllerContext
+        var controller = new AuthController(new IdentityStore(), new TokenService(new IdentityStore()))
         {
-            HttpContext = new DefaultHttpContext
+            ControllerContext = new ControllerContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
-                    new[]
-                    {
-                        new Claim("name", "Catalog Manager"),
-                        new Claim("role", "Manager"),
-                        new Claim("role", "Manager"),
-                        new Claim("permission", "Read"),
-                        new Claim("permission", "Read"),
-                        new Claim("exp", new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))
-                    },
-                    "Bearer"))
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                        [
+                            new Claim("name", "Catalog Manager"),
+                            new Claim("role", "Manager"),
+                            new Claim("role", "Manager"),
+                            new Claim("permission", "Read"),
+                            new Claim("permission", "Read"),
+                            new Claim("exp", new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))
+                        ],
+                        "Bearer"))
+                }
             }
         };
 
         ActionResult<TokenVerificationResponse> result = controller.Verify();
 
         OkObjectResult ok = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<TokenVerificationResponse>(ok.Value);
+        TokenVerificationResponse response = Assert.IsType<TokenVerificationResponse>(ok.Value);
         Assert.Equal("Catalog Manager", response.UserName);
-        Assert.Equal(new[] { "Manager" }, response.Roles);
-        Assert.Equal(new[] { "Read" }, response.Permissions);
+        Assert.Equal(["Manager"], response.Roles);
+        Assert.Equal(["Read"], response.Permissions);
         Assert.Equal("Bearer", response.AuthenticationType);
         Assert.Equal(new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero), response.ExpiresAtUtc);
     }
@@ -192,19 +193,18 @@ public class IdentityServiceTests
     public void FromPrincipal_FallsBackToIdentityNameAndAuthenticationType()
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            new[]
-            {
+            [
                 new Claim(ClaimTypes.Name, "customer@shop.local"),
                 new Claim("role", "StoreCustomer")
-            },
+            ],
             authenticationType: null,
             nameType: ClaimTypes.Name,
             roleType: ClaimTypes.Role));
 
-        TokenVerificationResponse response = TokenVerificationResponse.FromPrincipal(principal);
+        var response = TokenVerificationResponse.FromPrincipal(principal);
 
         Assert.Equal("customer@shop.local", response.UserName);
         Assert.Equal("Bearer", response.AuthenticationType);
-        Assert.Equal(new[] { "StoreCustomer" }, response.Roles);
+        Assert.Equal(["StoreCustomer"], response.Roles);
     }
 }

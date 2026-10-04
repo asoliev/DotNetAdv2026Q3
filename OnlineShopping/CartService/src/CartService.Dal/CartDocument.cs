@@ -7,7 +7,8 @@ public sealed class CartDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
-    public List<CartItemDocument> Items { get; set; } = new();
+    // LiteDB needs a setter to populate Items on load; init keeps it settable only during deserialization.
+    public IList<CartItemDocument> Items { get; init; } = [];
 }
 
 public sealed class CartItemDocument

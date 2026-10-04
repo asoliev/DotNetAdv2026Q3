@@ -17,14 +17,9 @@ namespace CartService.Api;
 [ApiVersion("1.0")]
 [ApiVersion("2.0")]
 [Route("api/v{version:apiVersion}/carts/{cartKey}")]
-public sealed class CartsController : ControllerBase
+public sealed class CartsController(CartManager cartService) : ControllerBase
 {
-    private readonly CartManager _cartService;
-
-    public CartsController(CartManager cartService)
-    {
-        _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
-    }
+    private readonly CartManager _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
 
     /// <summary>
     /// Returns cart information for version 1.
@@ -34,7 +29,7 @@ public sealed class CartsController : ControllerBase
     public async Task<ActionResult<CartResponse>> GetV1(string cartKey, CancellationToken cancellationToken)
     {
         IReadOnlyList<CartItem> items = await _cartService.GetItemsAsync(cartKey, cancellationToken).ConfigureAwait(false);
-        return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
+        return Ok(new CartResponse(cartKey, [.. items.Select(Map)]));
     }
 
     /// <summary>
@@ -73,9 +68,9 @@ public sealed class CartsController : ControllerBase
         return removed ? Ok() : NotFound();
     }
 
-    private static CartItemResponse Map(CartItem item) => new CartItemResponse(item.Id, item.Name, item.Image is null ? null : new CartItemImageResponse(item.Image.Url, item.Image.AltText), item.Price, item.Quantity);
+    private static CartItemResponse Map(CartItem item) => new(item.Id, item.Name, item.Image is null ? null : new CartItemImageResponse(item.Image.Url, item.Image.AltText), item.Price, item.Quantity);
 
-    private static CartItem Map(CartItemRequest request) => new CartItem(
+    private static CartItem Map(CartItemRequest request) => new(
             request.Id,
             request.Name,
             request.Image is null ? null : new CartItemImage(request.Image.Url, request.Image.AltText),
@@ -85,6 +80,6 @@ public sealed class CartsController : ControllerBase
     private async Task<ActionResult<CartResponse>> AddItemCoreAsync(string cartKey, CartItemRequest request, CancellationToken cancellationToken)
     {
         IReadOnlyList<CartItem> items = await _cartService.AddItemAsync(cartKey, Map(request), cancellationToken).ConfigureAwait(false);
-        return Ok(new CartResponse(cartKey, items.Select(Map).ToList()));
+        return Ok(new CartResponse(cartKey, [.. items.Select(Map)]));
     }
 }

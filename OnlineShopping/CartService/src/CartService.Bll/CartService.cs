@@ -1,13 +1,8 @@
 namespace CartService.Bll;
 
-public sealed class CartManager
+public sealed class CartManager(ICartRepository cartRepository)
 {
-    private readonly ICartRepository _cartRepository;
-
-    public CartManager(ICartRepository cartRepository)
-    {
-        _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
-    }
+    private readonly ICartRepository _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
 
     public Task<IReadOnlyList<CartItem>> GetItemsAsync(string cartKey, CancellationToken cancellationToken = default)
     {
@@ -48,7 +43,7 @@ public sealed class CartManager
     private async Task<IReadOnlyList<CartItem>> GetItemsCoreAsync(string cartKey, CancellationToken cancellationToken)
     {
         Cart? cart = await _cartRepository.GetByIdAsync(cartKey, cancellationToken).ConfigureAwait(false);
-        return cart?.GetItems() ?? Array.Empty<CartItem>();
+        return cart?.GetItems() ?? [];
     }
 
     private async Task<IReadOnlyList<CartItem>> AddItemCoreAsync(string cartKey, CartItem item, CancellationToken cancellationToken)

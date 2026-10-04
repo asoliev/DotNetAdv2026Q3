@@ -80,6 +80,6 @@ public sealed class TokenService(IdentityStore identityStore)
             }
         }
 
-        return permissions.OrderBy(permission => permission).ToList();
+        return [.. permissions.OrderBy(permission => permission)];
     }
 }

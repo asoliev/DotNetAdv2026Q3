@@ -10,10 +10,10 @@ public class StartupSmokeTests
         await using var factory = new WebApplicationFactory<Program>();
         using HttpClient client = factory.CreateClient();
 
-        HttpResponseMessage response = await client.GetAsync("/swagger/v1/swagger.json");
-        string payload = await response.Content.ReadAsStringAsync();
+        HttpResponseMessage response = await client.GetAsync(new Uri("/swagger/v1/swagger.json", UriKind.Relative), TestContext.Current.CancellationToken);
+        var payload = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
-        Assert.Contains("Identity Service API", payload);
+        Assert.Contains("Identity Service API", payload, StringComparison.Ordinal);
     }
 }

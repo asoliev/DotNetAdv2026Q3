@@ -20,12 +20,12 @@ public class LiteDbCartRepositoryTests
                 var cart = new Cart(expectedCartKey);
                 cart.AddItem(new CartItem(itemId, "Mouse", new CartItemImage(new Uri("https://example.com/mouse.png"), "Mouse"), 25.50m, 2));
 
-                await repository.UpsertAsync(cart);
+                await repository.UpsertAsync(cart, TestContext.Current.CancellationToken);
             }
 
             using (var repository = new LiteDbCartRepository(databasePath))
             {
-                Cart? cart = await repository.GetByIdAsync(expectedCartKey);
+                Cart? cart = await repository.GetByIdAsync(expectedCartKey, TestContext.Current.CancellationToken);
 
                 Assert.NotNull(cart);
                 Assert.Equal(expectedCartKey, cart!.Id);

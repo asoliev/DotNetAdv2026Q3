@@ -2,7 +2,7 @@ namespace CartService.Bll;
 
 public sealed class Cart
 {
-    private readonly List<CartItem> _items = new();
+    private readonly List<CartItem> _items = [];
 
     public Cart(string key)
     {
@@ -27,7 +27,7 @@ public sealed class Cart
 
     public string Id { get; }
 
-    public IReadOnlyList<CartItem> GetItems() => _items.Select(item => item.Copy()).ToList();
+    public IReadOnlyList<CartItem> GetItems() => [.. _items.Select(item => item.Copy())];
 
     public void AddItem(CartItem item)
     {

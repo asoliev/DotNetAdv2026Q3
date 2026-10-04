@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
@@ -5,6 +7,7 @@ using RabbitMQ.Client;
 
 namespace CatalogService.Api.Messaging;
 
+[SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by the DI container.")]
 internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -12,57 +15,69 @@ internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
 
     public RabbitMqProductEventPublisher(IConfiguration configuration)
     {
-        _connectionFactory = new ConnectionFactory
+        _connectionFactory = new ConnectionFactory { HostName = configuration["RabbitMq:Host"] ?? "localhost" };
+
+        // Credentials come from environment variables or user-secrets. Without them the client's built-in
+        // guest login is used, which RabbitMQ only accepts from localhost.
+        if (configuration["RabbitMq:Username"] is { } userName)
         {
-            HostName = configuration["RabbitMq:Host"] ?? "localhost",
-            UserName = configuration["RabbitMq:Username"] ?? "guest",
-            Password = configuration["RabbitMq:Password"] ?? "guest"
-        };
+            _connectionFactory.UserName = userName;
+        }
+
+        if (configuration["RabbitMq:Password"] is { } password)
+        {
+            _connectionFactory.Password = password;
+        }
     }
 
     public Task PublishUpsertedAsync(ProductChangedMessage message, CancellationToken cancellationToken = default) => PublishAsync(RabbitMqTopology.ChangedRoutingKey, message, cancellationToken);
 
     public Task PublishDeletedAsync(Guid id, CancellationToken cancellationToken = default) => PublishAsync(RabbitMqTopology.DeletedRoutingKey, new ProductDeletedMessage(id), cancellationToken);
 
-    private Task PublishAsync<TMessage>(string routingKey, TMessage message, CancellationToken cancellationToken)
+    private async Task PublishAsync<TMessage>(string routingKey, TMessage message, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using IConnection connection = _connectionFactory.CreateConnection();
-        using IModel channel = connection.CreateModel();
+        IConnection connection = await _connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using ConfiguredAsyncDisposable connectionScope = connection.ConfigureAwait(false);
+        IChannel channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        await using ConfiguredAsyncDisposable channelScope = channel.ConfigureAwait(false);
 
-        channel.ExchangeDeclare(RabbitMqTopology.ExchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
-        channel.ExchangeDeclare(RabbitMqTopology.RetryExchangeName, ExchangeType.Direct, durable: true, autoDelete: false);
-        channel.QueueDeclare(
+        await channel.ExchangeDeclareAsync(RabbitMqTopology.ExchangeName, ExchangeType.Direct, durable: true, autoDelete: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.ExchangeDeclareAsync(RabbitMqTopology.RetryExchangeName, ExchangeType.Direct, durable: true, autoDelete: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueDeclareAsync(
             RabbitMqTopology.QueueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: new Dictionary<string, object>
+            arguments: new Dictionary<string, object?>
             {
                 ["x-dead-letter-exchange"] = RabbitMqTopology.RetryExchangeName
-            });
-        channel.QueueDeclare(
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueDeclareAsync(
             RabbitMqTopology.RetryQueueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: new Dictionary<string, object>
+            arguments: new Dictionary<string, object?>
             {
                 ["x-message-ttl"] = 5000,
                 ["x-dead-letter-exchange"] = RabbitMqTopology.ExchangeName
-            });
-        channel.QueueBind(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.ChangedRoutingKey);
-        channel.QueueBind(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.DeletedRoutingKey);
-        channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.ChangedRoutingKey);
-        channel.QueueBind(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.DeletedRoutingKey);
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.ChangedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.QueueName, RabbitMqTopology.ExchangeName, RabbitMqTopology.DeletedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.ChangedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.QueueBindAsync(RabbitMqTopology.RetryQueueName, RabbitMqTopology.RetryExchangeName, RabbitMqTopology.DeletedRoutingKey, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, JsonOptions));
-        IBasicProperties properties = channel.CreateBasicProperties();
-        properties.Persistent = true;
-        properties.ContentType = "application/json";
+        var properties = new BasicProperties
+        {
+            Persistent = true,
+            ContentType = "application/json"
+        };
 
-        channel.BasicPublish(RabbitMqTopology.ExchangeName, routingKey, properties, body);
-        return Task.CompletedTask;
+        await channel.BasicPublishAsync(RabbitMqTopology.ExchangeName, routingKey, mandatory: false, properties, body, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using CatalogService.Application;
 using CatalogService.Domain;
 
@@ -7,7 +9,20 @@ namespace CatalogService.Infrastructure;
 
 public sealed class SqliteProductRepository(string databasePath) : IProductRepository
 {
-    private readonly CatalogDatabase _database = new CatalogDatabase(databasePath);
+    private const string CategoryIdParameter = "$categoryId";
+
+    // A null $categoryId disables the filter, so one fixed query covers both the filtered and unfiltered page.
+    private const string CountPageQuery = "SELECT COUNT(*) FROM Products WHERE ($categoryId IS NULL OR CategoryId = $categoryId)";
+
+    private const string SelectPageQuery = """
+        SELECT Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount
+        FROM Products
+        WHERE ($categoryId IS NULL OR CategoryId = $categoryId)
+        ORDER BY Name
+        LIMIT $pageSize OFFSET $offset;
+        """;
+
+    private readonly CatalogDatabase _database = new(databasePath);
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -44,38 +59,25 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
     public async Task<PagedResult<Product>> GetPageAsync(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var offset = (pageNumber - 1) * pageSize;
-        var filterClause = categoryId is null ? string.Empty : "WHERE CategoryId = $categoryId";
+        var categoryIdValue = categoryId?.ToString() ?? (object)DBNull.Value;
 
         using SqliteConnection connection = _database.CreateConnection();
 
         int totalCount;
         using (SqliteCommand countCommand = connection.CreateCommand())
         {
-            countCommand.CommandText = $"SELECT COUNT(*) FROM Products {filterClause}";
-            if (categoryId is not null)
-            {
-                countCommand.Parameters.AddWithValue("$categoryId", categoryId.Value.ToString());
-            }
+            countCommand.CommandText = CountPageQuery;
+            countCommand.Parameters.AddWithValue(CategoryIdParameter, categoryIdValue);
 
             var result = await countCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            totalCount = Convert.ToInt32(result);
+            totalCount = Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
         var items = new List<Product>();
         using (SqliteCommand command = connection.CreateCommand())
         {
-            command.CommandText = $"""
-                SELECT Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount
-                FROM Products
-                {filterClause}
-                ORDER BY Name
-                LIMIT $pageSize OFFSET $offset;
-                """;
-            if (categoryId is not null)
-            {
-                command.Parameters.AddWithValue("$categoryId", categoryId.Value.ToString());
-            }
-
+            command.CommandText = SelectPageQuery;
+            command.Parameters.AddWithValue(CategoryIdParameter, categoryIdValue);
             command.Parameters.AddWithValue("$pageSize", pageSize);
             command.Parameters.AddWithValue("$offset", offset);
 
@@ -89,7 +91,13 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         return new PagedResult<Product>(items, totalCount, pageNumber, pageSize);
     }
 
-    public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
+    public Task AddAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        return InsertAsync(product, cancellationToken);
+    }
+
+    private async Task InsertAsync(Product product, CancellationToken cancellationToken)
     {
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
@@ -101,7 +109,13 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+        return UpdateRowAsync(product, cancellationToken);
+    }
+
+    private async Task UpdateRowAsync(Product product, CancellationToken cancellationToken)
     {
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
@@ -134,7 +148,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Products WHERE CategoryId = $categoryId";
-        command.Parameters.AddWithValue("$categoryId", categoryId.ToString());
+        command.Parameters.AddWithValue(CategoryIdParameter, categoryId.ToString());
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -142,10 +156,10 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
     {
         command.Parameters.AddWithValue("$id", product.Id.ToString());
         command.Parameters.AddWithValue("$name", product.Name);
-        command.Parameters.AddWithValue("$description", string.IsNullOrWhiteSpace(product.Description) ? (object)DBNull.Value : product.Description!);
+        command.Parameters.AddWithValue("$description", string.IsNullOrWhiteSpace(product.Description) ? (object)DBNull.Value : product.Description);
         command.Parameters.AddWithValue("$imageUrl", product.Image?.Url ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("$imageAltText", product.Image?.AltText ?? (object)DBNull.Value);
-        command.Parameters.AddWithValue("$categoryId", product.CategoryId.ToString());
+        command.Parameters.AddWithValue(CategoryIdParameter, product.CategoryId.ToString());
         command.Parameters.AddWithValue("$price", product.Price);
         command.Parameters.AddWithValue("$amount", product.Amount);
     }

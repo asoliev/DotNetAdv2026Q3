@@ -46,9 +46,14 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     /// </summary>
     [Authorize(Roles = AuthRoles.Manager)]
     [HttpPost]
-    public async Task<ActionResult<CategoryResponse>> Create([FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
+    public Task<ActionResult<CategoryResponse>> Create([FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return CreateInternal(request, cancellationToken);
+    }
+
+    private async Task<ActionResult<CategoryResponse>> CreateInternal(CategoryUpsertRequest request, CancellationToken cancellationToken)
+    {
         try
         {
             var category = new Category(Guid.NewGuid(), request.Name, MapImage(request.Image), request.ParentCategoryId);
@@ -66,9 +71,14 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     /// </summary>
     [Authorize(Roles = AuthRoles.Manager)]
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
+    public Task<IActionResult> Update(Guid id, [FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return UpdateInternal(id, request, cancellationToken);
+    }
+
+    private async Task<IActionResult> UpdateInternal(Guid id, CategoryUpsertRequest request, CancellationToken cancellationToken)
+    {
         try
         {
             var category = new Category(id, request.Name, MapImage(request.Image), request.ParentCategoryId);
@@ -98,7 +108,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
         return NoContent();
     }
 
-    private static CategoryResponse Map(Category category) => new CategoryResponse(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
+    private static CategoryResponse Map(Category category) => new(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
 
     private static ImageResponse? MapImage(ImageInfo? image) => image is null ? null : new ImageResponse(image.Url, image.AltText);
 

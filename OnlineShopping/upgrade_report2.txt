@@ -1,0 +1,125 @@
+I ran all three services and called every endpoint, and the upgraded code behaves the same as the original.
+
+My first end-to-end run only covered about half the endpoints, so this time I called every endpoint of every service. That's 110 checks, including error cases, logins as manager and as customer, and messages from Catalog to Cart through RabbitMQ. I ran them three times:
+
+┌───────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          Run                          │                                                      Result                                                       │
+├───────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Original code (the commit before your upgrade commit) │ 110 / 110                                                                                                         │
+├───────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Upgraded code, running locally                        │ 110 / 110                                                                                                         │
+├───────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Upgraded code, in docker-compose                      │ 109 / 110 — the one failure is only because your existing "Laptop Pro" product showed up in the full product list │
+└───────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+What was covered:
+- Identity: token (login), refresh (including a reused refresh token being rejected), and verify (with valid, missing, garbage and tampered tokens).
+- Categories and products: list, get one, create, update and delete, plus paging, filtering by category, and deleting a category deleting its products.
+- Cart: the v1 and v2 reads, adding items (quantities add up on re-add), and deleting items (a second delete returns 404).
+- Auth rules: 401 when not logged in, and 403 when a customer tries a manager-only change.
+- RabbitMQ: updating a product changes its name, price and image in the cart and keeps the quantity; deleting a product removes it from the cart; the queues were empty afterwards.
+- Swagger: all 4 API documents and all 3 Swagger UIs load, and Cart shows its V1/V2 choice.
+
+Before vs after: 97 of the 110 responses are identical once IDs and timestamps are masked. The other 13 differ only because of:
+- a random ID;
+- the source file path shown in Development error pages;
+- the Swagger document version changing from 3.0.1 to 3.0.4;
+- the newer Swagger UI page.
+
+A bug that was already there (not caused by the upgrade): invalid input returns 500 instead of 400, before and after. This happens for an empty category name, a negative price, pageSize=101, cart quantity 0, or a relative image URL. Say if you want it fixed separately.
+
+Is anything left to update?
+- Packages you reference directly: all are on the latest version, and none are vulnerable or deprecated.
+- Packages pulled in by those packages: some have newer versions, and I left them on purpose:
+  - Microsoft.OpenApi 3.x would break Swashbuckle 10, which is built for 2.x.
+  - SQLitePCLRaw 3.x is a major version below Microsoft.Data.Sqlite, which is already on its latest release.
+  - Microsoft.IdentityModel 8.19 → 8.23 is a minor update. It could be pinned, but it isn't needed.
+- Your local .NET: SDK 10.0.101, runtime 10.0.1. That's 11 patches behind the 10.0.12 packages. My report wrongly said your runtime was 10.0.12; I've corrected it. The Docker images already get the latest patch.
+- rabbitmq:3-management: 4.x is available. Moving to it is an infrastructure change, so I didn't do it unasked.
+
+Your "Electronics" / "Laptop Pro" data is untouched, all test data is deleted, and the stack is stopped with its volumes kept. I've added the full test results and the "still not on latest" details to OnlineShopping/package-upgrade-report.md. That edit is uncommitted; the code changes themselves are already in your commit 3a0a403.
+
+
+
+
+
+
+I've upgraded RabbitMQ to 4.3.6 and it works the same as 3.13. The report update you staged is committed as f0b9db3.
+
+RabbitMQ. Yes, the upgrade is a change in OnlineShopping/docker-compose.yml: rabbitmq:3-management → rabbitmq:4-management. It's the only place RabbitMQ is defined, and it's what runs locally. The broker keeps no data volume, so each start is a fresh broker and there was nothing to migrate.
+- All 110 endpoint checks pass locally, with responses identical to the 3.13 run.
+- On docker-compose, 109/110 pass. The one failure is expected: the product count includes your existing "Laptop Pro".
+- The retry path (a bad message is rejected, waits 5 seconds in the retry queue, and comes back) works.
+- The broker logs one deprecation warning, management_metrics_collection. It comes from RabbitMQ's management plugin, not from our code.
+- The docker-compose.yml change and a new RabbitMQ section in the report are not committed yet. Want me to commit them?
+
+sonar/dotnet-tools.json: dotnet-sonarscanner 11.3.0 is the latest version. Yes, keeping the scanner on the latest is better. It gets new .NET and C# support and bug fixes.
+
+Postgres 18: not on its own. The real problem is SonarQube itself:
+- sonarqube:lts-community is SonarQube 9.9.8. That tag was last updated in 2025-09, and 9.9 has been superseded by newer SonarQube releases.
+- SonarQube 9.9 officially supports Postgres 11–15 only. Your postgres:16 already falls outside that range; it works, but it isn't officially supported.
+- 9.9 dates from early 2023, so its C# rules predate C# 12–14 and .NET 8–10, which this code uses.
+- The current free edition, Community Build 26.9 (tag community), supports Postgres 15–18.
+
+So the upgrade that's worth doing is SonarQube → community, and Postgres 18 makes sense together with it. The catch is the existing data in the sonar_sonarqube_* volumes (scan history, your admin password and token):
+- Postgres 16 → 18 can't reuse the old data folder; it needs a dump and restore. The Postgres 18 image also changes where the volume should be mounted (/var/lib/postgresql).
+- SonarQube upgrades its own database on first start. I haven't checked that 9.9 can go straight to 26.x, so I'd back up first.
+
+Two ways to do it:
+1. Fresh start (simplest): switch to sonarqube:community and postgres:18 with new volumes. You'd lose the old scan history and need to create a new token. Rescanning is cheap.
+2. Keep your data: back up the database, upgrade SonarQube while staying on Postgres 16 (Community Build supports it), then dump and restore into Postgres 18.
+
+Which do you want? Neither deletes anything until you confirm.
+
+We're updating OnlineShopping's dependencies: RabbitMQ is now on 4.3.6 and passed every test, and your report update is committed. Next, tell me whether SonarQube and Postgres 18 should start fresh or keep your data, and whether to commit the RabbitMQ change.
+
+
+
+
+
+
+
+
+I checked the local picture, but I couldn't read the SonarQube dashboard itself. Its API needs a login, and the default admin/admin password has been changed, so I'll need a token from you (see below).
+
+Coverage (all tests pass: 14 + 7 + 12):
+
+┌─────────────────┬───────┬────────┬─────────────────────────────────────────────────┐
+│    Solution     │ Line  │ Branch │                   Weak spots                    │
+├─────────────────┼───────┼────────┼─────────────────────────────────────────────────┤
+│ IdentityService │ 91.8% │ 87.5%  │ ShoppingAuth (the shared auth library) only 39% │
+├─────────────────┼───────┼────────┼─────────────────────────────────────────────────┤
+│ CartService     │ 91.6% │ 78.1%  │ Dal branches 60%                                │
+├─────────────────┼───────┼────────┼─────────────────────────────────────────────────┤
+│ CatalogService  │ 54.4% │ 50.0%  │ Domain 61%, Application 56%, Infrastructure 51% │
+└─────────────────┴───────┴────────┴─────────────────────────────────────────────────┘
+
+SonarQube will show lower numbers than these for Catalog and Cart. Their test projects don't reference the *.Api projects (controllers, RabbitMQ publisher and consumer, middleware). Those projects are missing from the coverage file, so Sonar counts all of that code as uncovered. Identity's tests do cover its Api, which is why it scores well.
+
+Code smells from the .NET analyzers: 34 warnings, and none were introduced by the upgrade.
+
+┌─────────────────┬──────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│    Solution     │ Warnings │                                                                  Where                                                                   │
+├─────────────────┼──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ IdentityService │ 19       │ all in tests: 14× CA1707 (underscores in test names), 5× CA1861 (constant arrays passed as arguments)                                    │
+├─────────────────┼──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CartService     │ 10       │ 8× CA1707 in tests; 2 in production code in CartDocument.cs:10 (CA2227 settable collection, CA1002 List<T> exposed)                      │
+├─────────────────┼──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CatalogService  │ 5        │ all in production code: 4× CA1062 (missing null checks) in the Sqlite repositories, 1× CA1305 (culture) at SqliteProductRepository.cs:61 │
+└─────────────────┴──────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+SonarQube also runs its own C# rules on top of these, so its code-smell count will be higher. The only way to see that list is the server.
+
+To get the real SonarQube data:
+1. Open http://localhost:9000, log in, and go to My Account → Security.
+2. Generate a token of type User. An analysis-only token can run scans but can't read the issues.
+3. Paste it here. The server is local-only, and you can revoke the token afterwards.
+
+With the token I'll:
+- pull what the dashboard currently shows (issues, code smells, bugs, vulnerabilities, coverage, quality gate);
+- rescan all 3 solutions on the upgraded code, because anything stored now predates the upgrade;
+- show you the before and after.
+
+SonarQube is still running on :9000 so you can make the token.
+
+※ recap: You asked for a SonarQube quality check after the package and RabbitMQ 4 upgrades. Local numbers are in, so the next step is yours: generate a User token at localhost:9000 (My Account → Security) and paste it here so I can read and rescan the SonarQube results.

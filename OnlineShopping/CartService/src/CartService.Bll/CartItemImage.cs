@@ -19,5 +19,5 @@ public sealed class CartItemImage
 
     public string? AltText { get; }
 
-    public CartItemImage Copy() => new CartItemImage(Url, AltText);
+    public CartItemImage Copy() => new(Url, AltText);
 }
