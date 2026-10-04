@@ -61,6 +61,8 @@ public sealed class GatewayCacheTests
         Assert.Equal(1, catalog.GetRequestCount(HttpMethod.Get, "/api/v1/categories"));
         await AssertGetAsync(client, "/api/v1/categories?pageNumber=2&pageSize=10");
         Assert.Equal(2, catalog.GetRequestCount(HttpMethod.Get, "/api/v1/categories"));
+        await AssertGetAsync(client, "/api/v1/categories?pageNumber=1&pageSize=20");
+        Assert.Equal(3, catalog.GetRequestCount(HttpMethod.Get, "/api/v1/categories"));
 
         catalog.ResetRequests();
         catalog.SetResponse(HttpMethod.Get, "/api/v1/products", HttpStatusCode.OK, "{\"list\":\"products\"}");
@@ -74,7 +76,7 @@ public sealed class GatewayCacheTests
         Assert.Equal(4, catalog.GetRequestCount(HttpMethod.Get, "/api/v1/products"));
 
         catalog.ResetRequests();
-        string categoryProductsOne = $"/api/v1/categories/{firstCategoryId}/products";
+        string categoryProductsOne = $"/api/v1/categories/{firstCategoryId}/products?pageNumber=1&pageSize=10";
         catalog.SetResponse(HttpMethod.Get, $"/api/v1/categories/{firstCategoryId}/products", HttpStatusCode.OK, "{\"list\":\"category-products-1\"}");
         catalog.SetResponse(HttpMethod.Get, $"/api/v1/categories/{secondCategoryId}/products", HttpStatusCode.OK, "{\"list\":\"category-products-2\"}");
         await AssertGetAsync(client, categoryProductsOne);
@@ -83,8 +85,13 @@ public sealed class GatewayCacheTests
             catalog.GetRequestCount(HttpMethod.Get, $"/api/v1/categories/{firstCategoryId}/products") == 1,
             string.Join(" | ", catalog.Requests.Select(request => $"{request.Method} {request.Path}{request.Query}")));
         await AssertGetAsync(client, $"/api/v1/categories/{firstCategoryId}/products?pageNumber=2&pageSize=10");
-        await AssertGetAsync(client, $"/api/v1/categories/{secondCategoryId}/products");
-        Assert.Equal(3, catalog.TotalRequestCount);
+        await AssertGetAsync(client, $"/api/v1/categories/{firstCategoryId}/products?pageNumber=1&pageSize=20");
+        string categoryProductsTwo = $"/api/v1/categories/{secondCategoryId}/products?pageNumber=1&pageSize=10";
+        await AssertGetAsync(client, categoryProductsTwo);
+        await AssertGetAsync(client, categoryProductsTwo);
+        await AssertGetAsync(client, categoryProductsOne);
+        Assert.Equal(4, catalog.TotalRequestCount);
+        Assert.Equal(1, catalog.GetRequestCount(HttpMethod.Get, $"/api/v1/categories/{secondCategoryId}/products"));
     }
 
     [Fact]
@@ -115,6 +122,12 @@ public sealed class GatewayCacheTests
         await using var factory = new GatewayApiFactory(catalog, cart);
         using HttpClient client = factory.CreateClient();
         Guid productId = Guid.NewGuid();
+        Guid categoryId = Guid.NewGuid();
+
+        catalog.SetResponse(HttpMethod.Get, $"/api/v1/categories/{categoryId}", HttpStatusCode.OK, "{\"detail\":true}");
+        await AssertGetAsync(client, $"/api/v1/categories/{categoryId}");
+        await AssertGetAsync(client, $"/api/v1/categories/{categoryId}");
+        Assert.Equal(2, catalog.GetRequestCount(HttpMethod.Get, $"/api/v1/categories/{categoryId}"));
 
         catalog.SetResponse(HttpMethod.Get, $"/api/v1/products/{productId}", HttpStatusCode.OK, "{\"detail\":true}");
         await AssertGetAsync(client, $"/api/v1/products/{productId}");
