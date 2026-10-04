@@ -192,11 +192,9 @@ public sealed class GatewayCacheTests
 
     private sealed class ShortTtlGatewayFactory(string contentRoot, Uri catalogBaseAddress) : WebApplicationFactory<Program>
     {
-        private static readonly object EnvironmentConfigurationLock = new();
-
         public new HttpClient CreateClient()
         {
-            lock (EnvironmentConfigurationLock)
+            lock (GatewayApiFactory.EnvironmentConfigurationLock)
             {
                 const string catalogKey = "Downstream__Catalog__BaseUrl";
                 const string cartKey = "Downstream__Cart__BaseUrl";

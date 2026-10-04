@@ -6,7 +6,7 @@ namespace ApiGateway.Tests;
 
 public sealed class GatewayApiFactory : WebApplicationFactory<Program>
 {
-    private static readonly object EnvironmentConfigurationLock = new();
+    internal static readonly object EnvironmentConfigurationLock = new();
     private readonly IReadOnlyDictionary<string, string?> _configurationOverrides;
 
     public GatewayApiFactory(

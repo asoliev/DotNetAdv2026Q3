@@ -64,7 +64,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
       "UpstreamPathTemplate": "/api/v1/products/{id}",
-      "UpstreamHttpMethod": [ "GET" ]
+      "UpstreamHttpMethod": [ "GET" ],
+      "Timeout": 5
     },
     {
       "Key": "catalog-product-properties",
@@ -72,7 +73,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5002 }],
       "UpstreamPathTemplate": "/api/v1/products/{id}/properties",
-      "UpstreamHttpMethod": [ "GET" ]
+      "UpstreamHttpMethod": [ "GET" ],
+      "Timeout": 5
     },
     {
       "Key": "catalog-product-create",
@@ -149,6 +151,15 @@
       "UpstreamPathTemplate": "/api/v2/carts/{cartKey}/items/{itemId}",
       "UpstreamHttpMethod": [ "DELETE" ],
       "AuthenticationOptions": { "AuthenticationProviderKeys": [ "Bearer" ] }
+    }
+  ],
+  "Aggregates": [
+    {
+      "RouteKeys": [ "catalog-product-get", "catalog-product-properties" ],
+      "Priority": 2,
+      "UpstreamPathTemplate": "/api/v1/products/{id}/aggregate",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Aggregator": "ProductDetailsAggregator"
     }
   ],
   "GlobalConfiguration": {

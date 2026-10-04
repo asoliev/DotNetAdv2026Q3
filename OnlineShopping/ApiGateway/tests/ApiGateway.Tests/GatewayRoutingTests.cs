@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -75,9 +76,13 @@ public sealed class GatewayRoutingTests
         downstream.ResetRequests();
         using HttpResponseMessage aggregate = await client.GetAsync(new Uri($"/api/v1/products/{productId}/aggregate", UriKind.Relative), Ct);
 
-        Assert.Equal(HttpStatusCode.NotFound, aggregate.StatusCode);
-        DownstreamRequest aggregateRequest = Assert.Single(downstream.Requests);
-        Assert.Equal($"/api/v1/products/{productId}/aggregate", aggregateRequest.Path);
+        Assert.Equal(HttpStatusCode.OK, aggregate.StatusCode);
+        using JsonDocument aggregateDocument = JsonDocument.Parse(await aggregate.Content.ReadAsStringAsync(Ct));
+        Assert.Equal("product", aggregateDocument.RootElement.GetProperty("product").GetProperty("id").GetString());
+        Assert.Equal("s10", aggregateDocument.RootElement.GetProperty("properties").GetProperty("model").GetString());
+        Assert.Equal(2, downstream.Requests.Count);
+        Assert.Contains(downstream.Requests, request => request.Path == $"/api/v1/products/{productId}");
+        Assert.Contains(downstream.Requests, request => request.Path == $"/api/v1/products/{productId}/properties");
     }
 
     [Fact]
