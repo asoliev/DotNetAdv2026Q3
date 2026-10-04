@@ -41,32 +41,57 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     }
 
     [Fact]
-    public async Task WriteEndpointsRejectAnonymousInvalidAndNonManagerCallers()
+    public async Task WriteEndpointsRequireAdminForAllMutations()
     {
-        var category = new CategoryUpsertRequest("Denied", null, null);
-        var product = new ProductUpsertRequest("Denied", null, null, Guid.NewGuid(), 1m, 1);
+        using HttpClient admin = factory.CreateClient(TestTokens.Admin);
+        string suffix = Guid.NewGuid().ToString("N");
+        CategoryResponse categoryToUpdate = await CreateCategoryAsync(admin, $"Update {suffix}");
+        CategoryResponse categoryToDelete = await CreateCategoryAsync(admin, $"Delete {suffix}");
+        CategoryResponse productCategory = await CreateCategoryAsync(admin, $"Product {suffix}");
+        ProductResponse productToUpdate = await CreateProductAsync(admin, $"Update {suffix}", productCategory.Id);
+        ProductResponse productToDelete = await CreateProductAsync(admin, $"Delete {suffix}", productCategory.Id);
 
-        using HttpClient anonymous = factory.CreateClient(accessToken: null);
-        using HttpClient forged = factory.CreateClient(TestTokens.Create(ShoppingAuth.AuthRoles.Manager, "a-different-signing-key-that-is-long-enough"));
-        using HttpClient customer = factory.CreateClient(TestTokens.StoreCustomer);
-
-        foreach ((HttpClient client, HttpStatusCode expected) in new[] { (anonymous, HttpStatusCode.Unauthorized), (forged, HttpStatusCode.Unauthorized), (customer, HttpStatusCode.Forbidden) })
+        (Func<HttpClient, Task<HttpResponseMessage>> Send, HttpStatusCode AdminStatus)[] writeRequests =
         {
-            using HttpResponseMessage createCategory = await client.PostAsJsonAsync(Relative("api/v1/categories"), category, Ct);
-            using HttpResponseMessage updateCategory = await client.PutAsJsonAsync(Relative($"api/v1/categories/{Guid.NewGuid()}"), category, Ct);
-            using HttpResponseMessage deleteCategory = await client.DeleteAsync(Relative($"api/v1/categories/{Guid.NewGuid()}"), Ct);
-            using HttpResponseMessage createProduct = await client.PostAsJsonAsync(Relative("api/v1/products"), product, Ct);
-            using HttpResponseMessage updateProduct = await client.PutAsJsonAsync(Relative($"api/v1/products/{Guid.NewGuid()}"), product, Ct);
-            using HttpResponseMessage deleteProduct = await client.DeleteAsync(Relative($"api/v1/products/{Guid.NewGuid()}"), Ct);
+            (client => client.PostAsJsonAsync(Relative("api/v1/categories"), new CategoryUpsertRequest($"Create {suffix}", null, null), Ct), HttpStatusCode.Created),
+            (client => client.PutAsJsonAsync(Relative($"api/v1/categories/{categoryToUpdate.Id}"), new CategoryUpsertRequest($"Update {suffix}", null, null), Ct), HttpStatusCode.NoContent),
+            (client => client.DeleteAsync(Relative($"api/v1/categories/{categoryToDelete.Id}"), Ct), HttpStatusCode.NoContent),
+            (client => client.PostAsJsonAsync(Relative("api/v1/products"), new ProductUpsertRequest($"Create {suffix}", null, null, productCategory.Id, 10m, 1), Ct), HttpStatusCode.Created),
+            (client => client.PutAsJsonAsync(Relative($"api/v1/products/{productToUpdate.Id}"), new ProductUpsertRequest($"Update {suffix}", null, null, productCategory.Id, 11m, 2), Ct), HttpStatusCode.NoContent),
+            (client => client.DeleteAsync(Relative($"api/v1/products/{productToDelete.Id}"), Ct), HttpStatusCode.NoContent),
+        };
+        (string? AccessToken, HttpStatusCode ExpectedStatus)[] rejectedCallers =
+        [
+            (null, HttpStatusCode.Unauthorized),
+            (TestTokens.Create(ShoppingAuth.AuthRoles.Admin, "a-different-signing-key-that-is-long-enough"), HttpStatusCode.Unauthorized),
+            (TestTokens.ExpiredManager, HttpStatusCode.Unauthorized),
+            (TestTokens.WrongIssuerManager, HttpStatusCode.Unauthorized),
+            (TestTokens.WrongAudienceManager, HttpStatusCode.Unauthorized),
+            (TestTokens.StoreCustomer, HttpStatusCode.Forbidden),
+            (TestTokens.Manager, HttpStatusCode.Forbidden),
+        ];
 
-            Assert.All([createCategory, updateCategory, deleteCategory, createProduct, updateProduct, deleteProduct], response => Assert.Equal(expected, response.StatusCode));
+        foreach ((string? accessToken, HttpStatusCode expectedStatus) in rejectedCallers)
+        {
+            using HttpClient client = factory.CreateClient(accessToken);
+            foreach (var writeRequest in writeRequests)
+            {
+                using HttpResponseMessage response = await writeRequest.Send(client);
+                Assert.Equal(expectedStatus, response.StatusCode);
+            }
+        }
+
+        foreach (var writeRequest in writeRequests)
+        {
+            using HttpResponseMessage response = await writeRequest.Send(admin);
+            Assert.Equal(writeRequest.AdminStatus, response.StatusCode);
         }
     }
 
     [Fact]
     public async Task CategoryCanBeCreatedReadUpdatedAndDeleted()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
 
         using HttpResponseMessage created = await client.PostAsJsonAsync(Relative("api/v1/categories"), new CategoryUpsertRequest("Books", new ImageRequest("https://example.com/books.png", "Books"), null), Ct);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
@@ -96,7 +121,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [Fact]
     public async Task ChildCategoryRequiresAnExistingParent()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         CategoryResponse parent = await CreateCategoryAsync(client, "Parent");
 
         using HttpResponseMessage child = await client.PostAsJsonAsync(Relative("api/v1/categories"), new CategoryUpsertRequest("Child", null, parent.Id), Ct);
@@ -112,7 +137,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [Fact]
     public async Task MissingBodyOrUnknownIdsAreRejected()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         using var empty = new StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
 
         using HttpResponseMessage noBody = await client.PostAsync(Relative("api/v1/categories"), empty, Ct);
@@ -129,7 +154,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [InlineData("""{ "name": "Phone", "categoryId": "7f8e0a52-8d2c-4a39-9b0e-2f8f3c1d4a10", "price": 1.0 }""")]
     public async Task ProductWithMissingRequiredFieldIsRejected(string json)
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         using var body = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         using HttpResponseMessage response = await client.PostAsync(Relative("api/v1/products"), body, Ct);
@@ -140,7 +165,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [Fact]
     public async Task ProductCanBeCreatedReadUpdatedAndDeletedAndPublishesEvents()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         CategoryResponse category = await CreateCategoryAsync(client, "Phones");
 
         using HttpResponseMessage created = await client.PostAsJsonAsync(Relative("api/v1/products"), new ProductUpsertRequest("Phone", "<p>Android</p>", new ImageRequest("https://example.com/phone.png", "Phone"), category.Id, 499.99m, 5), Ct);
@@ -167,7 +192,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [Fact]
     public async Task ProductWithUnknownCategoryIsRejected()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         CategoryResponse category = await CreateCategoryAsync(client, "Tablets");
         ProductResponse product = await CreateProductAsync(client, "Tablet", category.Id);
         var unknownCategory = new ProductUpsertRequest("Tablet", null, null, Guid.NewGuid(), 1m, 1);
@@ -182,7 +207,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [Fact]
     public async Task ProductsArePagedAndFilteredByCategory()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         CategoryResponse category = await CreateCategoryAsync(client, "Laptops");
         CategoryResponse other = await CreateCategoryAsync(client, "Monitors");
         foreach (var name in new[] { "Laptop A", "Laptop B", "Laptop C" })
@@ -208,7 +233,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
     [Fact]
     public async Task DeletingACategoryDeletesItsProducts()
     {
-        using HttpClient client = factory.CreateClient(TestTokens.Manager);
+        using HttpClient client = factory.CreateClient(TestTokens.Admin);
         CategoryResponse category = await CreateCategoryAsync(client, "Cameras");
         ProductResponse product = await CreateProductAsync(client, "Camera", category.Id);
 

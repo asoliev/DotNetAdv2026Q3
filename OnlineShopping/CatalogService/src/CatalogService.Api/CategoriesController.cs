@@ -44,7 +44,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     /// <summary>
     /// Creates a category.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpPost]
     public Task<ActionResult<CategoryResponse>> Create([FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -69,7 +69,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     /// <summary>
     /// Updates a category.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpPut("{id:guid}")]
     public Task<IActionResult> Update(Guid id, [FromBody] CategoryUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -94,7 +94,7 @@ public sealed class CategoriesController(CategoryService categoryService, ICateg
     /// <summary>
     /// Deletes a category and its products.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

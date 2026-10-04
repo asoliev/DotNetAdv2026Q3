@@ -55,7 +55,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// <summary>
     /// Creates a product.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpPost]
     public Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -81,7 +81,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// <summary>
     /// Updates a product.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpPut("{id:guid}")]
     public Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -107,7 +107,7 @@ public sealed class ProductsController(ProductService productService, IProductRe
     /// <summary>
     /// Deletes a product.
     /// </summary>
-    [Authorize(Roles = AuthRoles.Manager)]
+    [Authorize(Roles = AuthRoles.Admin)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
