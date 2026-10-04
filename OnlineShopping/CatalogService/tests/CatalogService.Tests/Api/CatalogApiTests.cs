@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using System.Net.Http.Json;
 
 using CatalogService.Api;
@@ -28,6 +29,54 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("1.0", Assert.Single(response.Headers.GetValues("api-supported-versions")));
+    }
+
+    [Fact]
+    public async Task ProductPropertiesReturnsHardcodedDictionaryAnonymously()
+    {
+        using HttpClient admin = factory.CreateClient(TestTokens.Admin);
+        CategoryResponse category = await CreateCategoryAsync(admin, $"Properties {Guid.NewGuid():N}");
+        ProductResponse product = await CreateProductAsync(admin, $"Product {Guid.NewGuid():N}", category.Id);
+        using HttpClient anonymous = factory.CreateClient(accessToken: null);
+
+        using HttpResponseMessage response = await anonymous.GetAsync(Relative($"api/v1/products/{product.Id}/properties"), Ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Dictionary<string, string> properties = await ReadAsync<Dictionary<string, string>>(response);
+        Assert.Equal(2, properties.Count);
+        Assert.Equal("Samsung", properties["category"]);
+        Assert.Equal("s10", properties["model"]);
+    }
+
+    [Fact]
+    public async Task ProductPropertiesUnknownOrMalformedIdsReturnNotFound()
+    {
+        using HttpClient client = factory.CreateClient(accessToken: null);
+
+        await AssertStatusAsync(client, HttpMethod.Get, $"api/v1/products/{Guid.NewGuid()}/properties", HttpStatusCode.NotFound);
+        await AssertStatusAsync(client, HttpMethod.Get, "api/v1/products/not-a-guid/properties", HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task ProductPropertiesAreDocumentedAsAStringDictionaryInOpenApi()
+    {
+        using HttpClient client = factory.CreateClient(accessToken: null);
+
+        string payload = await client.GetStringAsync(Relative("/swagger/v1/swagger.json"), Ct);
+        using JsonDocument document = JsonDocument.Parse(payload);
+        JsonElement operation = document.RootElement
+            .GetProperty("paths")
+            .GetProperty("/api/v1/products/{id}/properties")
+            .GetProperty("get");
+        JsonElement schema = operation
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
+
+        Assert.Equal("object", schema.GetProperty("type").GetString());
+        Assert.Equal("string", schema.GetProperty("additionalProperties").GetProperty("type").GetString());
     }
 
     [Fact]

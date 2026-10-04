@@ -35,6 +35,29 @@ public sealed class ProductsController(ProductService productService, IProductRe
     }
 
     /// <summary>
+    /// Returns fixed demonstration properties for a product.
+    /// </summary>
+    /// <remarks>
+    /// These hardcoded values are examples, not persisted product specifications.
+    /// </remarks>
+    [HttpGet("{id:guid}/properties")]
+    public async Task<ActionResult<Dictionary<string, string>>> GetProperties(Guid id, CancellationToken cancellationToken)
+    {
+        Product? product = await _productRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        if (product is null)
+        {
+            return NotFound();
+        }
+
+        Dictionary<string, string> properties = new()
+        {
+            ["category"] = "Samsung",
+            ["model"] = "s10",
+        };
+        return Ok(properties);
+    }
+
+    /// <summary>
     /// Returns a page of products.
     /// </summary>
     /// <remarks>
