@@ -11,7 +11,7 @@ using ShoppingAuth;
 using ShoppingTelemetry;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-builder.AddShoppingTelemetry("ApiGateway");
+builder.AddShoppingTelemetry("api-gateway");
 IConfiguration routeConfiguration = GatewayRouteConfiguration.Load(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Configuration.AddConfiguration(routeConfiguration);
 string? aggregateTimeoutSetting = builder.Configuration["Gateway:AggregateTimeoutSeconds"];

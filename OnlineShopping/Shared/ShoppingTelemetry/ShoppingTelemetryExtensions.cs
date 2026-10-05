@@ -3,9 +3,11 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -35,8 +37,24 @@ public static class ShoppingTelemetryExtensions
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddMeter(ShoppingTelemetryMetrics.MeterName))
-            .UseOtlpExporter();
+                .AddMeter(ShoppingTelemetryMetrics.MeterName));
+
+        if (bool.TryParse(builder.Configuration["Telemetry:ExportEnabled"], out bool exportEnabled) && exportEnabled)
+        {
+            telemetryBuilder.UseOtlpExporter();
+            telemetryBuilder.WithLogging(
+                configureBuilder: null,
+                options =>
+                {
+                    options.IncludeFormattedMessage = true;
+                    options.IncludeScopes = true;
+                    options.ParseStateValues = true;
+                });
+        }
+
+        builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(
+            "CartService.Api.Middleware.AccessTokenLoggingMiddleware",
+            LogLevel.None);
 
         return builder;
     }
