@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -64,6 +65,21 @@ public sealed class RabbitMqCatalogEventConsumerTests(CartApiFactory factory) : 
         var acked = await ProcessAsync(routingKey, Encoding.UTF8.GetBytes(body));
 
         Assert.False(acked);
+    }
+
+    [Fact]
+    public async Task InvalidMessageMarksCurrentDeliveryActivityAsError()
+    {
+        using var activity = new Activity("rabbitmq.receive");
+        activity.Start();
+        using var consumer = new RabbitMqCatalogEventConsumer(Manager, NullLogger<RabbitMqCatalogEventConsumer>.Instance, new ConfigurationBuilder().Build());
+
+        var acked = await consumer.TryProcessMessageAsync("product.changed", Encoding.UTF8.GetBytes("{ not json"), Ct);
+
+        Assert.False(acked);
+        Assert.Equal(ActivityStatusCode.Error, activity.Status);
+        Assert.Equal("JsonException", activity.GetTagItem("error.type"));
+        Assert.Equal("failure", activity.GetTagItem("messaging.message.outcome"));
     }
 
     [Fact]

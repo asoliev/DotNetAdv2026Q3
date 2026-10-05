@@ -10,6 +10,8 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
+using RabbitMQ.Client;
+
 namespace ShoppingTelemetry;
 
 public static class ShoppingTelemetryExtensions
@@ -19,14 +21,21 @@ public static class ShoppingTelemetryExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
 
-        builder.AddOpenTelemetry()
+        OpenTelemetryBuilder telemetryBuilder = builder.AddOpenTelemetry();
+        telemetryBuilder
             .ConfigureResource(resource => resource.AddService(serviceName))
             .WithTracing(tracing => tracing
                 .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation())
+                .AddHttpClientInstrumentation()
+                .AddSource(RabbitMQActivitySource.PublisherSourceName)
+                .AddSource(RabbitMQActivitySource.SubscriberSourceName)
+                .AddSource("CartService.Dal.LiteDbCartRepository")
+                .AddSource("CatalogService.Infrastructure.SqliteProductRepository")
+                .AddSource("CatalogService.Infrastructure.SqliteCategoryRepository"))
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
-                .AddRuntimeInstrumentation())
+                .AddRuntimeInstrumentation()
+                .AddMeter(ShoppingTelemetryMetrics.MeterName))
             .UseOtlpExporter();
 
         return builder;
@@ -43,7 +52,7 @@ public static class ShoppingTelemetryExtensions
             {
                 context.Response.OnStarting(static state =>
                 {
-                    var (response, currentTraceId) = ((HttpResponse Response, string TraceId))state;
+                    (HttpResponse response, string currentTraceId) = ((HttpResponse Response, string TraceId))state;
                     response.Headers["X-Trace-Id"] = currentTraceId;
                     return Task.CompletedTask;
                 }, (context.Response, traceId));

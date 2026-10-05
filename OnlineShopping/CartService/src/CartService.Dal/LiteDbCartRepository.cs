@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using CartService.Bll;
 
 using LiteDB;
@@ -6,6 +8,7 @@ namespace CartService.Dal;
 
 public sealed class LiteDbCartRepository : ICartRepository, IDisposable
 {
+    private static readonly ActivitySource ActivitySource = new("CartService.Dal.LiteDbCartRepository");
     private readonly LiteDatabase _database;
 
     public LiteDbCartRepository(string databasePath)
@@ -22,15 +25,18 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        CartDocument? document = GetCollection().FindById(cartKey);
-        return Task.FromResult(document is null ? null : MapToDomain(document));
+        return Task.FromResult(Execute("get_by_id", () =>
+        {
+            CartDocument? document = GetCollection().FindById(cartKey);
+            return document is null ? null : MapToDomain(document);
+        }));
     }
 
     public Task<IReadOnlyList<Cart>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        IReadOnlyList<Cart> carts = [.. GetCollection().FindAll().Select(MapToDomain)];
+        IReadOnlyList<Cart> carts = Execute<IReadOnlyList<Cart>>("get_all", () => [.. GetCollection().FindAll().Select(MapToDomain)]);
         return Task.FromResult<IReadOnlyList<Cart>>(carts);
     }
 
@@ -39,8 +45,12 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
         ArgumentNullException.ThrowIfNull(cart);
         cancellationToken.ThrowIfCancellationRequested();
 
-        ILiteCollection<CartDocument> collection = GetCollection();
-        collection.Upsert(MapToDocument(cart));
+        Execute("upsert", () =>
+        {
+            ILiteCollection<CartDocument> collection = GetCollection();
+            collection.Upsert(MapToDocument(cart));
+            return true;
+        });
 
         return Task.CompletedTask;
     }
@@ -48,6 +58,27 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
     public void Dispose() => _database.Dispose();
 
     private ILiteCollection<CartDocument> GetCollection() => _database.GetCollection<CartDocument>("carts");
+
+    private static T Execute<T>(string operation, Func<T> action)
+    {
+        using Activity? activity = ActivitySource.StartActivity($"cart.repository.{operation}");
+        activity?.SetTag("db.system", "litedb");
+        activity?.SetTag("db.operation.name", operation);
+
+        try
+        {
+            T result = action();
+            activity?.SetTag("db.operation.outcome", "success");
+            return result;
+        }
+        catch (Exception exception)
+        {
+            activity?.SetTag("db.operation.outcome", "failure");
+            activity?.SetTag("error.type", exception.GetType().Name);
+            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            throw;
+        }
+    }
 
     private static CartDocument MapToDocument(Cart cart)
     {

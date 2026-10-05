@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 
 using CatalogService.Application;
@@ -9,6 +10,7 @@ namespace CatalogService.Infrastructure;
 
 public sealed class SqliteProductRepository(string databasePath) : IProductRepository
 {
+    private static readonly ActivitySource ActivitySource = new("CatalogService.Infrastructure.SqliteProductRepository");
     private const string CategoryIdParameter = "$categoryId";
 
     // A null $categoryId disables the filter, so one fixed query covers both the filtered and unfiltered page.
@@ -26,6 +28,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        using Activity? activity = StartActivity("get_by_id");
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT Id, Name, Description, ImageUrl, ImageAltText, CategoryId, Price, Amount FROM Products WHERE Id = $id";
@@ -34,14 +37,18 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
         using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
+            activity?.SetTag("db.operation.outcome", "success");
             return null;
         }
 
-        return Map(reader);
+        Product product = Map(reader);
+        activity?.SetTag("db.operation.outcome", "success");
+        return product;
     }
 
     public async Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)
     {
+        using Activity? activity = StartActivity("get_all");
         var items = new List<Product>();
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
@@ -53,11 +60,13 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
             items.Add(Map(reader));
         }
 
+        activity?.SetTag("db.operation.outcome", "success");
         return items;
     }
 
     public async Task<PagedResult<Product>> GetPageAsync(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
+        using Activity? activity = StartActivity("get_page");
         var offset = (pageNumber - 1) * pageSize;
         var categoryIdValue = categoryId?.ToString() ?? (object)DBNull.Value;
 
@@ -88,6 +97,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
             }
         }
 
+        activity?.SetTag("db.operation.outcome", "success");
         return new PagedResult<Product>(items, totalCount, pageNumber, pageSize);
     }
 
@@ -99,6 +109,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
 
     private async Task InsertAsync(Product product, CancellationToken cancellationToken)
     {
+        using Activity? activity = StartActivity("insert");
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
@@ -107,6 +118,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
             """;
         ApplyParameters(command, product);
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        activity?.SetTag("db.operation.outcome", "success");
     }
 
     public Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
@@ -117,6 +129,7 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
 
     private async Task UpdateRowAsync(Product product, CancellationToken cancellationToken)
     {
+        using Activity? activity = StartActivity("update");
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
@@ -132,24 +145,37 @@ public sealed class SqliteProductRepository(string databasePath) : IProductRepos
             """;
         ApplyParameters(command, product);
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        activity?.SetTag("db.operation.outcome", "success");
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        using Activity? activity = StartActivity("delete");
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Products WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id.ToString());
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        activity?.SetTag("db.operation.outcome", "success");
     }
 
     public async Task DeleteByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
     {
+        using Activity? activity = StartActivity("delete_by_category");
         using SqliteConnection connection = _database.CreateConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Products WHERE CategoryId = $categoryId";
         command.Parameters.AddWithValue(CategoryIdParameter, categoryId.ToString());
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        activity?.SetTag("db.operation.outcome", "success");
+    }
+
+    private static Activity? StartActivity(string operation)
+    {
+        Activity? activity = ActivitySource.StartActivity($"product.repository.{operation}");
+        activity?.SetTag("db.system", "sqlite");
+        activity?.SetTag("db.operation.name", operation);
+        return activity;
     }
 
     private static void ApplyParameters(SqliteCommand command, Product product)
