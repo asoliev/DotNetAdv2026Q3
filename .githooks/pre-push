@@ -113,7 +113,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         queue_solution "$solution_root/ApiGateway/ApiGateway.slnx"
         add_file_for_solution "ApiGateway" "$abs_file"
         ;;
-      OnlineShopping/Shared/ShoppingAuth/*)
+      OnlineShopping/Shared/ShoppingAuth/*|OnlineShopping/Shared/ShoppingTelemetry/*)
         queue_solution "$solution_root/CartService/CartService.slnx"
         queue_solution "$solution_root/CatalogService/CatalogService.slnx"
         queue_solution "$solution_root/IdentityService/IdentityService.slnx"

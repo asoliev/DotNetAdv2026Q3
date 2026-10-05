@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using OpenTelemetry;
-using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -25,8 +24,16 @@ public static class ShoppingTelemetryExtensions
 
         OpenTelemetryBuilder telemetryBuilder = builder.AddOpenTelemetry();
         telemetryBuilder
-            .ConfigureResource(resource => resource.AddService(serviceName))
+            .ConfigureResource(resource => resource
+                .AddService(serviceName,
+                    serviceVersion: typeof(ShoppingTelemetryExtensions).Assembly.GetName().Version?.ToString(),
+                    serviceInstanceId: Guid.NewGuid().ToString())
+                .AddAttributes(new Dictionary<string, object>
+                {
+                    ["deployment.environment.name"] = builder.Environment.EnvironmentName,
+                }))
             .WithTracing(tracing => tracing
+                .SetSampler(new ParentBasedSampler(new AlwaysOnSampler()))
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddSource(RabbitMQActivitySource.PublisherSourceName)
@@ -39,17 +46,18 @@ public static class ShoppingTelemetryExtensions
                 .AddRuntimeInstrumentation()
                 .AddMeter(ShoppingTelemetryMetrics.MeterName));
 
-        if (bool.TryParse(builder.Configuration["Telemetry:ExportEnabled"], out bool exportEnabled) && exportEnabled)
+        telemetryBuilder.WithLogging(
+            configureBuilder: null,
+            options =>
+            {
+                options.IncludeFormattedMessage = true;
+                options.IncludeScopes = true;
+                options.ParseStateValues = true;
+            });
+
+        if (bool.TryParse(builder.Configuration["Telemetry:ExportEnabled"], out var exportEnabled) && exportEnabled)
         {
             telemetryBuilder.UseOtlpExporter();
-            telemetryBuilder.WithLogging(
-                configureBuilder: null,
-                options =>
-                {
-                    options.IncludeFormattedMessage = true;
-                    options.IncludeScopes = true;
-                    options.ParseStateValues = true;
-                });
         }
 
         builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(
