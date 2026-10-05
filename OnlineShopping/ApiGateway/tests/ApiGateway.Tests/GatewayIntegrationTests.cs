@@ -24,6 +24,37 @@ public sealed class GatewayIntegrationTests
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    [Theory]
+    [InlineData("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01", "4bf92f3577b34da6a3ce929d0e0e4736")]
+    [InlineData("not-a-traceparent", null)]
+    public async Task ProductRoutePropagatesValidTraceContextAndReturnsTraceId(string traceparent, string? expectedTraceId)
+    {
+        await using DownstreamStub catalog = await DownstreamStub.StartAsync(Ct);
+        Guid productId = Guid.NewGuid();
+        string path = $"/api/v1/products/{productId}";
+        catalog.SetResponse(HttpMethod.Get, path, HttpStatusCode.OK, "{}");
+        await using var factory = new GatewayApiFactory(catalog);
+        using HttpClient client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(path, UriKind.Relative));
+        request.Headers.TryAddWithoutValidation("traceparent", traceparent);
+
+        using HttpResponseMessage response = await client.SendAsync(request, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.TryGetValues("X-Trace-Id", out IEnumerable<string>? responseTraceIds));
+        string responseTraceId = Assert.Single(responseTraceIds!);
+        Assert.Matches("^[0-9a-f]{32}$", responseTraceId);
+        if (expectedTraceId is not null)
+        {
+            Assert.Equal(expectedTraceId, responseTraceId);
+        }
+
+        DownstreamRequest downstreamRequest = Assert.Single(catalog.Requests);
+        Assert.True(downstreamRequest.Headers.TryGetValue("traceparent", out string[]? downstreamTraceparents));
+        string downstreamTraceparent = Assert.Single(downstreamTraceparents!);
+        Assert.Matches($"^00-{responseTraceId}-[0-9a-f]{{16}}-01$", downstreamTraceparent);
+    }
+
     [Fact]
     public async Task AggregateRouteDispatchesBothCatalogRequestsAndCombinesTheirResponses()
     {
