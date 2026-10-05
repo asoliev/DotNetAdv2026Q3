@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using CartService.Bll;
 using CartService.Dal;
 
@@ -5,6 +7,40 @@ namespace CartService.Tests;
 
 public class LiteDbCartRepositoryTests
 {
+    [Fact]
+    public async Task RepositoryOperationsEmitDatabaseActivityWithoutCartIdentifiers()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"cart-{Guid.NewGuid():N}.db");
+        Activity? capturedActivity = null;
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "CartService.Dal.LiteDbCartRepository",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity => capturedActivity = activity
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        try
+        {
+            using var repository = new LiteDbCartRepository(databasePath);
+            await repository.GetByIdAsync("private-cart-key", TestContext.Current.CancellationToken);
+
+            Assert.NotNull(capturedActivity);
+            Assert.Equal("cart.repository.get_by_id", capturedActivity!.DisplayName);
+            Assert.Equal("litedb", capturedActivity.GetTagItem("db.system"));
+            Assert.Equal("get_by_id", capturedActivity.GetTagItem("db.operation.name"));
+            Assert.DoesNotContain(capturedActivity.TagObjects, tag => tag.Key.Contains("cart", StringComparison.OrdinalIgnoreCase) && tag.Key != "db.system");
+            Assert.DoesNotContain(capturedActivity.TagObjects, tag => Equals(tag.Value, "private-cart-key"));
+        }
+        finally
+        {
+            if (File.Exists(databasePath))
+            {
+                File.Delete(databasePath);
+            }
+        }
+    }
+
     [Fact]
     public async Task UpsertAsyncThenGetByIdAsyncReturnsPersistedCart()
     {

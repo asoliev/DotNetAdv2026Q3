@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\ShoppingAuth\ShoppingAuth.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ShoppingTelemetry\ShoppingTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

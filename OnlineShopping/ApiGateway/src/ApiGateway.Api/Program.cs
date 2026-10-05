@@ -8,8 +8,10 @@ using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 
 using ShoppingAuth;
+using ShoppingTelemetry;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.AddShoppingTelemetry("api-gateway");
 IConfiguration routeConfiguration = GatewayRouteConfiguration.Load(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Configuration.AddConfiguration(routeConfiguration);
 string? aggregateTimeoutSetting = builder.Configuration["Gateway:AggregateTimeoutSeconds"];
@@ -45,6 +47,7 @@ ocelotBuilder.AddSingletonDefinedAggregator<ProductDetailsAggregator>();
 
 WebApplication app = builder.Build();
 
+app.UseTraceIdResponseHeader();
 MapSwaggerEndpoints(app);
 
 await app.UseOcelot().ConfigureAwait(false);

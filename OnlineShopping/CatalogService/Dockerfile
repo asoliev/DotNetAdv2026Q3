@@ -10,6 +10,7 @@ WORKDIR /src
 # 'dotnet restore' is skipped — significantly speeding up rebuilds.
 COPY Directory.Build.props ./
 COPY Shared/ShoppingAuth/ShoppingAuth.csproj Shared/ShoppingAuth/
+COPY Shared/ShoppingTelemetry/ShoppingTelemetry.csproj Shared/ShoppingTelemetry/
 COPY CatalogService/src/CatalogService.Domain/CatalogService.Domain.csproj CatalogService/src/CatalogService.Domain/
 COPY CatalogService/src/CatalogService.Application/CatalogService.Application.csproj CatalogService/src/CatalogService.Application/
 COPY CatalogService/src/CatalogService.Infrastructure/CatalogService.Infrastructure.csproj CatalogService/src/CatalogService.Infrastructure/

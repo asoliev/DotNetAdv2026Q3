@@ -10,6 +10,7 @@ WORKDIR /src
 # 'dotnet restore' is skipped — significantly speeding up rebuilds.
 COPY Directory.Build.props ./
 COPY Shared/ShoppingAuth/ShoppingAuth.csproj Shared/ShoppingAuth/
+COPY Shared/ShoppingTelemetry/ShoppingTelemetry.csproj Shared/ShoppingTelemetry/
 COPY IdentityService/src/IdentityService.Api/IdentityService.Api.csproj IdentityService/src/IdentityService.Api/
 
 # Restore NuGet packages for the entry-point project.

@@ -3,6 +3,7 @@ WORKDIR /src
 
 COPY Directory.Build.props ./
 COPY Shared/ShoppingAuth/ShoppingAuth.csproj Shared/ShoppingAuth/
+COPY Shared/ShoppingTelemetry/ShoppingTelemetry.csproj Shared/ShoppingTelemetry/
 COPY ApiGateway/src/ApiGateway.Api/ApiGateway.Api.csproj ApiGateway/src/ApiGateway.Api/
 
 RUN dotnet restore ApiGateway/src/ApiGateway.Api/ApiGateway.Api.csproj

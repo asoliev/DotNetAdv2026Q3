@@ -1,6 +1,6 @@
 using System.Net;
-using System.Text.Json;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using CatalogService.Api;
 
@@ -29,6 +29,7 @@ public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<C
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("1.0", Assert.Single(response.Headers.GetValues("api-supported-versions")));
+        Assert.Matches("^[0-9a-f]{32}$", Assert.Single(response.Headers.GetValues("X-Trace-Id")));
     }
 
     [Fact]

@@ -17,6 +17,7 @@
     <ProjectReference Include="..\CartService.Bll\CartService.Bll.csproj" />
     <ProjectReference Include="..\CartService.Dal\CartService.Dal.csproj" />
     <ProjectReference Include="..\..\..\Shared\ShoppingAuth\ShoppingAuth.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ShoppingTelemetry\ShoppingTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

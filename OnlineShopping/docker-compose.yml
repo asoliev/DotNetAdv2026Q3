@@ -1,5 +1,15 @@
 services:
 
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.0
+    container_name: online-shopping-aspire-dashboard
+    ports:
+      - "127.0.0.1:18888:18888"
+      - "127.0.0.1:4317:18889"
+    environment:
+      DASHBOARD__OTLP__AUTHMODE: ApiKey
+      DASHBOARD__OTLP__PRIMARYAPIKEY: ${ASPIRE_DASHBOARD_OTLP_API_KEY:?Set ASPIRE_DASHBOARD_OTLP_API_KEY before starting Compose}
+
   # ─────────────────────────────────────────────────────────────────────────────
   # External dependency: RabbitMQ message broker
   # Uses the official pre-built image with the management UI plugin included.
@@ -37,6 +47,10 @@ services:
       - "5003:8080"   # http://localhost:5003/swagger
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Telemetry__ExportEnabled: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_EXPORTER_OTLP_HEADERS: x-otlp-api-key=${ASPIRE_DASHBOARD_OTLP_API_KEY:?Set ASPIRE_DASHBOARD_OTLP_API_KEY before starting Compose}
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CatalogService — manages categories and products, publishes change events
@@ -53,6 +67,10 @@ services:
       - "5002:8080"   # http://localhost:5002/swagger
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Telemetry__ExportEnabled: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_EXPORTER_OTLP_HEADERS: x-otlp-api-key=${ASPIRE_DASHBOARD_OTLP_API_KEY:?Set ASPIRE_DASHBOARD_OTLP_API_KEY before starting Compose}
       RabbitMq__Host: rabbitmq       # overrides appsettings.json "RabbitMq:Host" — Docker DNS resolves 'rabbitmq'
       RabbitMq__Username: guest      # not in appsettings.json; credentials only come from env vars / user-secrets
       RabbitMq__Password: guest      # not in appsettings.json; credentials only come from env vars / user-secrets
@@ -77,6 +95,10 @@ services:
       - "5001:8080"   # http://localhost:5001/swagger
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Telemetry__ExportEnabled: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_EXPORTER_OTLP_HEADERS: x-otlp-api-key=${ASPIRE_DASHBOARD_OTLP_API_KEY:?Set ASPIRE_DASHBOARD_OTLP_API_KEY before starting Compose}
       RabbitMq__Host: rabbitmq       # overrides appsettings.json "RabbitMq:Host"
       RabbitMq__Username: guest      # not in appsettings.json; credentials only come from env vars / user-secrets
       RabbitMq__Password: guest      # not in appsettings.json; credentials only come from env vars / user-secrets
@@ -100,6 +122,10 @@ services:
       - "5004:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Telemetry__ExportEnabled: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_EXPORTER_OTLP_HEADERS: x-otlp-api-key=${ASPIRE_DASHBOARD_OTLP_API_KEY:?Set ASPIRE_DASHBOARD_OTLP_API_KEY before starting Compose}
       Downstream__Catalog__BaseUrl: http://catalog-service:8080
       Downstream__Cart__BaseUrl: http://cart-service:8080
     depends_on:

@@ -1,5 +1,7 @@
 # OnlineShopping Guide
 
+For the distributed observability implementation, local Aspire dashboard setup, and operational runbook, see [the observability solution guide](../11_advanced_logging/05-observability-solution.md).
+
 This folder contains the three services that work together for the security task:
 
 - `IdentityService` issues and verifies JWT access tokens and manages refresh tokens.

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogService.Infrastructu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShoppingAuth", "..\Shared\ShoppingAuth\ShoppingAuth.csproj", "{20B5B2D5-0C96-49F8-AFEF-CB42E6614EBF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShoppingTelemetry", "..\Shared\ShoppingTelemetry\ShoppingTelemetry.csproj", "{A752F953-0147-4D7A-9678-3E9F47D111F6}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogService.Tests", "tests\CatalogService.Tests\CatalogService.Tests.csproj", "{F751DE3F-4B7C-4698-AA36-65972BE4D7F7}"
@@ -88,6 +90,18 @@ Global
 		{20B5B2D5-0C96-49F8-AFEF-CB42E6614EBF}.Release|x64.ActiveCfg = Release|Any CPU
 		{20B5B2D5-0C96-49F8-AFEF-CB42E6614EBF}.Release|x64.Build.0 = Release|Any CPU
 		{20B5B2D5-0C96-49F8-AFEF-CB42E6614EBF}.Release|x86.ActiveCfg = Release|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Debug|x64.Build.0 = Debug|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Debug|x86.Build.0 = Debug|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Release|x64.ActiveCfg = Release|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Release|x64.Build.0 = Release|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Release|x86.ActiveCfg = Release|Any CPU
+		{A752F953-0147-4D7A-9678-3E9F47D111F6}.Release|x86.Build.0 = Release|Any CPU
 		{20B5B2D5-0C96-49F8-AFEF-CB42E6614EBF}.Release|x86.Build.0 = Release|Any CPU
 		{F751DE3F-4B7C-4698-AA36-65972BE4D7F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F751DE3F-4B7C-4698-AA36-65972BE4D7F7}.Debug|Any CPU.Build.0 = Debug|Any CPU

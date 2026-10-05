@@ -5,16 +5,20 @@ using System.Text.Json;
 
 using RabbitMQ.Client;
 
+using ShoppingTelemetry;
+
 namespace CatalogService.Api.Messaging;
 
 [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by the DI container.")]
-internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
+internal sealed partial class RabbitMqProductEventPublisher : IProductEventPublisher
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly ConnectionFactory _connectionFactory;
+    private readonly ILogger<RabbitMqProductEventPublisher> _logger;
 
-    public RabbitMqProductEventPublisher(IConfiguration configuration)
+    public RabbitMqProductEventPublisher(IConfiguration configuration, ILogger<RabbitMqProductEventPublisher> logger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _connectionFactory = new ConnectionFactory { HostName = configuration["RabbitMq:Host"] ?? "localhost" };
 
         // Credentials come from environment variables or user-secrets. Without them the client's built-in
@@ -37,6 +41,31 @@ internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
     private async Task PublishAsync<TMessage>(string routingKey, TMessage message, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        string messageId = Guid.NewGuid().ToString("N");
+        using var scope = _logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["messaging.message.id"] = messageId,
+            ["messaging.destination.name"] = RabbitMqTopology.ExchangeName,
+            ["messaging.rabbitmq.destination.routing_key"] = routingKey
+        });
+
+        try
+        {
+            await PublishCoreAsync(routingKey, message, messageId, cancellationToken).ConfigureAwait(false);
+            ShoppingTelemetryMetrics.RecordMessagingOperation("catalog-service", "publish", routingKey, "success");
+            Log.ProductEventPublished(_logger, routingKey, messageId);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            ShoppingTelemetryMetrics.RecordMessagingOperation("catalog-service", "publish", routingKey, "failure");
+            Log.ProductEventPublishFailed(_logger, routingKey, messageId, exception.GetType().Name);
+            throw;
+        }
+    }
+
+    private async Task PublishCoreAsync<TMessage>(string routingKey, TMessage message, string messageId, CancellationToken cancellationToken)
+    {
 
         IConnection connection = await _connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
         await using ConfiguredAsyncDisposable connectionScope = connection.ConfigureAwait(false);
@@ -74,10 +103,20 @@ internal sealed class RabbitMqProductEventPublisher : IProductEventPublisher
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, JsonOptions));
         var properties = new BasicProperties
         {
+            MessageId = messageId,
             Persistent = true,
             ContentType = "application/json"
         };
 
         await channel.BasicPublishAsync(RabbitMqTopology.ExchangeName, routingKey, mandatory: false, properties, body, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Published product event to routing key {RoutingKey} with message ID {MessageId}.")]
+        public static partial void ProductEventPublished(ILogger logger, string routingKey, string messageId);
+
+        [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "Failed to publish product event to routing key {RoutingKey} with message ID {MessageId}; error type {ErrorType}.")]
+        public static partial void ProductEventPublishFailed(ILogger logger, string routingKey, string messageId, string errorType);
     }
 }
