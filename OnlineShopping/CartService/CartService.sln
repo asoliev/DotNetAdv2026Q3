@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CartService.Dal", "src\Cart
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShoppingAuth", "..\Shared\ShoppingAuth\ShoppingAuth.csproj", "{3805D408-E771-41E5-B65B-5427A1C68155}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShoppingTelemetry", "..\Shared\ShoppingTelemetry\ShoppingTelemetry.csproj", "{42A7A440-7316-47B1-B5F3-795FD54D3F60}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CartService.Tests", "tests\CartService.Tests\CartService.Tests.csproj", "{FEF37810-B11D-4AC6-9B8E-8960A7754E45}"
@@ -74,6 +76,18 @@ Global
 		{3805D408-E771-41E5-B65B-5427A1C68155}.Release|x64.ActiveCfg = Release|Any CPU
 		{3805D408-E771-41E5-B65B-5427A1C68155}.Release|x64.Build.0 = Release|Any CPU
 		{3805D408-E771-41E5-B65B-5427A1C68155}.Release|x86.ActiveCfg = Release|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Debug|x64.Build.0 = Debug|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Debug|x86.Build.0 = Debug|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Release|x64.ActiveCfg = Release|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Release|x64.Build.0 = Release|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Release|x86.ActiveCfg = Release|Any CPU
+		{42A7A440-7316-47B1-B5F3-795FD54D3F60}.Release|x86.Build.0 = Release|Any CPU
 		{3805D408-E771-41E5-B65B-5427A1C68155}.Release|x86.Build.0 = Release|Any CPU
 		{FEF37810-B11D-4AC6-9B8E-8960A7754E45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FEF37810-B11D-4AC6-9B8E-8960A7754E45}.Debug|Any CPU.Build.0 = Debug|Any CPU

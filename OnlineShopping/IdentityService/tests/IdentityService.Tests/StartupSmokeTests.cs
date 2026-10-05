@@ -15,5 +15,6 @@ public class StartupSmokeTests
 
         response.EnsureSuccessStatusCode();
         Assert.Contains("Identity Service API", payload, StringComparison.Ordinal);
+        Assert.Matches("^[0-9a-f]{32}$", Assert.Single(response.Headers.GetValues("X-Trace-Id")));
     }
 }

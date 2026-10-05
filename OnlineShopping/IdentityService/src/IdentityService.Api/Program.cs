@@ -4,7 +4,10 @@ using Microsoft.OpenApi;
 
 using ShoppingAuth;
 
+using ShoppingTelemetry;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.AddShoppingTelemetry("identity-service");
 
 builder.Services.AddSingleton<IdentityStore>();
 builder.Services.AddSingleton<TokenService>();
@@ -32,6 +35,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 WebApplication app = builder.Build();
+app.UseTraceIdResponseHeader();
 
 app.UseSwagger();
 app.UseSwaggerUI();

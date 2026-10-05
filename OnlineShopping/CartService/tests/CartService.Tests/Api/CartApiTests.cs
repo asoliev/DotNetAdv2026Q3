@@ -36,6 +36,7 @@ public sealed class CartApiTests(CartApiFactory factory) : IClassFixture<CartApi
         using HttpResponseMessage response = await client.GetAsync(Relative("api/v1/carts/anonymous"), Ct);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Matches("^[0-9a-f]{32}$", Assert.Single(response.Headers.GetValues("X-Trace-Id")));
     }
 
     [Fact]

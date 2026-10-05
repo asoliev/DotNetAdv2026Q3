@@ -10,5 +10,6 @@
   </Folder>
   <Folder Name="/shared/">
     <Project Path="../Shared/ShoppingAuth/ShoppingAuth.csproj" />
+    <Project Path="../Shared/ShoppingTelemetry/ShoppingTelemetry.csproj" />
   </Folder>
 </Solution>

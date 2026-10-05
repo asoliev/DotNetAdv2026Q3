@@ -14,6 +14,7 @@
     <ProjectReference Include="..\CatalogService.Domain\CatalogService.Domain.csproj" />
     <ProjectReference Include="..\CatalogService.Infrastructure\CatalogService.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Shared\ShoppingAuth\ShoppingAuth.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ShoppingTelemetry\ShoppingTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

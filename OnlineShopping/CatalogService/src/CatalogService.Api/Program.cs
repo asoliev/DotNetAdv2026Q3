@@ -9,7 +9,10 @@ using Microsoft.OpenApi;
 
 using ShoppingAuth;
 
+using ShoppingTelemetry;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.AddShoppingTelemetry("catalog-service");
 var databaseDir = builder.Configuration["Database:Directory"] ?? builder.Environment.ContentRootPath;
 var databasePath = Path.Combine(databaseDir, "catalog.db");
 
@@ -48,6 +51,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 WebApplication app = builder.Build();
+app.UseTraceIdResponseHeader();
 IApiVersionDescriptionProvider versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
 
 app.UseSwagger();
@@ -65,3 +69,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync().ConfigureAwait(false);
+
