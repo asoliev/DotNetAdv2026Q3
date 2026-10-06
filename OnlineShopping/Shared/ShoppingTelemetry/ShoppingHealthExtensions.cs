@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -16,6 +18,14 @@ public static class ShoppingHealthExtensions
     public static IHealthChecksBuilder AddShoppingHealthChecks(this IHostApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.AddAuthorization(options => options.AddPolicy("HealthDetails", policy =>
+            policy.RequireAssertion(context =>
+                (builder.Environment.IsDevelopment()
+                    && context.Resource is HttpContext httpContext
+                    && httpContext.Connection.RemoteIpAddress is { } address
+                    && IPAddress.IsLoopback(address))
+                || (context.User.Identity?.IsAuthenticated == true
+                    && (context.User.IsInRole("admin") || context.User.IsInRole("Operations"))))));
         return builder.Services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
     }
@@ -72,6 +82,20 @@ public static class ShoppingHealthExtensions
         {
             Predicate = _ => true,
         }).AllowAnonymous();
+        application.MapHealthChecks("/health/details", new HealthCheckOptions
+        {
+            Predicate = _ => true,
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.Headers.CacheControl = "no-store";
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    status = report.Status.ToString(),
+                    checks = report.Entries.ToDictionary(entry => entry.Key,
+                        entry => new { status = entry.Value.Status.ToString() }),
+                }, context.RequestAborted).ConfigureAwait(false);
+            },
+        }).RequireAuthorization("HealthDetails");
         return application;
     }
 

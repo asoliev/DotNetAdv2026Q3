@@ -64,6 +64,8 @@ WebApplication app = builder.Build();
 app.UseTraceIdResponseHeader();
 MapSwaggerEndpoints(app);
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 #pragma warning disable ASP0014 // Health endpoints must execute before Ocelot's terminal forwarding middleware.
 app.UseEndpoints(endpoints => endpoints.MapShoppingHealthChecks());
 #pragma warning restore ASP0014

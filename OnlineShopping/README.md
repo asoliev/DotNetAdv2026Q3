@@ -42,6 +42,10 @@ All four APIs expose anonymous, status-only health endpoints:
 - `GET /health/live`: process liveness, independent of external dependencies.
 - `GET /health/ready`: readiness, returning HTTP `200` (`Healthy`) or `503` (`Unhealthy`).
 
+`GET /health/details` returns JSON containing the overall `status` and a `checks` object with individual check names and statuses. It uses the same readiness checks and HTTP status codes, omits diagnostic details, and sends `Cache-Control: no-store`. Access requires an authenticated JWT with the existing `admin` role or the `Operations` role. In `Development` only, direct loopback clients (`127.0.0.1` or `::1`) may access it anonymously. Do not expose Development endpoints through a tunnel or local reverse proxy: those connections may appear to come from loopback.
+
+The AppHost currently uses HTTP for local development. After rebuilding and restarting it, inspect Catalog details with `curl http://localhost:5002/health/details` or Cart details with `curl http://localhost:5001/health/details`. Remote deployments must configure HTTPS at the server or trusted ingress and run outside Development; the health endpoint itself does not enforce HTTPS or configure TLS.
+
 Catalog readiness checks a SQLite category lookup and a RabbitMQ connection. Cart readiness checks a LiteDB cart lookup and a RabbitMQ connection. Database probes are small, non-destructive reads through the same repositories used by the APIs; they verify read access, not write permissions or database integrity. RabbitMQ probes verify broker connectivity, not consumer progress or message delivery.
 
 Identity has no external database and uses the basic self check. Gateway readiness calls Catalog and Cart's `/health/ready` endpoints with bounded HTTP timeouts. Dependency checks are registered with a five-second timeout and return no exception details. Synchronous database work cannot be forcibly interrupted by cancellation, so the probes deliberately use single-key lookups.
