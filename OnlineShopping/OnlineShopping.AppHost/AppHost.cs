@@ -7,11 +7,13 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 
 builder.AddProject<Projects.IdentityService_Api>("identity-service", launchProfileName: null)
     .WithHttpEndpoint(port: 5003)
+    .WithHttpHealthCheck("/health/ready")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("Telemetry__ExportEnabled", "true");
 
 var catalog = builder.AddProject<Projects.CatalogService_Api>("catalog-service", launchProfileName: null)
     .WithHttpEndpoint(port: 5002)
+    .WithHttpHealthCheck("/health/ready")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("Telemetry__ExportEnabled", "true")
     .WithReference(rabbitmq)
@@ -19,6 +21,7 @@ var catalog = builder.AddProject<Projects.CatalogService_Api>("catalog-service",
 
 var cart = builder.AddProject<Projects.CartService_Api>("cart-service", launchProfileName: null)
     .WithHttpEndpoint(port: 5001)
+    .WithHttpHealthCheck("/health/ready")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("Telemetry__ExportEnabled", "true")
     .WithReference(rabbitmq)
@@ -26,6 +29,7 @@ var cart = builder.AddProject<Projects.CartService_Api>("cart-service", launchPr
 
 builder.AddProject<Projects.ApiGateway_Api>("api-gateway", launchProfileName: null)
     .WithHttpEndpoint(port: 5004)
+    .WithHttpHealthCheck("/health/ready")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("Telemetry__ExportEnabled", "true")
     .WithEnvironment("Downstream__Catalog__BaseUrl", catalog.GetEndpoint("http"))

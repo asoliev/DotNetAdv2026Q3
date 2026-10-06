@@ -13,6 +13,12 @@ using ShoppingTelemetry;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddShoppingTelemetry("catalog-service");
+builder.AddShoppingHealthChecks()
+    .AddDependencyCheck("sqlite", async (services, token) =>
+    {
+        await services.GetRequiredService<ICategoryRepository>().GetByIdAsync(Guid.Empty, token).ConfigureAwait(false);
+    })
+    .AddShoppingRabbitMqCheck(builder);
 var databaseDir = builder.Configuration["Database:Directory"] ?? builder.Environment.ContentRootPath;
 var databasePath = Path.Combine(databaseDir, "catalog.db");
 
@@ -67,6 +73,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapShoppingHealthChecks();
 
 await app.RunAsync().ConfigureAwait(false);
 

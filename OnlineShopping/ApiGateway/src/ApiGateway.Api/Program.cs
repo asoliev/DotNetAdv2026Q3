@@ -12,6 +12,20 @@ using ShoppingTelemetry;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddShoppingTelemetry("api-gateway");
+builder.AddShoppingHealthChecks();
+builder.Services.AddHttpClient("readiness", client => client.Timeout = TimeSpan.FromSeconds(3));
+foreach (string serviceName in new[] { "Catalog", "Cart" })
+{
+	string destination = builder.Configuration[$"Downstream:{serviceName}:BaseUrl"]
+		?? throw new InvalidOperationException($"Missing downstream address for {serviceName}.");
+	var healthEndpoint = new Uri(new Uri(destination), "/health/ready");
+	builder.Services.AddHealthChecks().AddDependencyCheck(serviceName, async (services, token) =>
+	{
+		HttpClient client = services.GetRequiredService<IHttpClientFactory>().CreateClient("readiness");
+		using HttpResponseMessage response = await client.GetAsync(healthEndpoint, token).ConfigureAwait(false);
+		response.EnsureSuccessStatusCode();
+	});
+}
 IConfiguration routeConfiguration = GatewayRouteConfiguration.Load(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Configuration.AddConfiguration(routeConfiguration);
 string? aggregateTimeoutSetting = builder.Configuration["Gateway:AggregateTimeoutSeconds"];
@@ -49,6 +63,10 @@ WebApplication app = builder.Build();
 
 app.UseTraceIdResponseHeader();
 MapSwaggerEndpoints(app);
+app.UseRouting();
+#pragma warning disable ASP0014 // Health endpoints must execute before Ocelot's terminal forwarding middleware.
+app.UseEndpoints(endpoints => endpoints.MapShoppingHealthChecks());
+#pragma warning restore ASP0014
 
 await app.UseOcelot().ConfigureAwait(false);
 await app.RunAsync().ConfigureAwait(false);

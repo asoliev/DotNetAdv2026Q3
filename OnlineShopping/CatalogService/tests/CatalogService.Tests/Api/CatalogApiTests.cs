@@ -4,11 +4,26 @@ using System.Text.Json;
 
 using CatalogService.Api;
 
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 namespace CatalogService.Tests.Api;
 
 public sealed class CatalogApiTests(CatalogApiFactory factory) : IClassFixture<CatalogApiFactory>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task LivenessIsAnonymousAndSqliteProbeIsHealthy()
+    {
+        using HttpClient client = factory.CreateClient(accessToken: null);
+        using HttpResponseMessage response = await client.GetAsync(Relative("/health/live"), Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        HealthReport report = await factory.Services.GetRequiredService<HealthCheckService>()
+            .CheckHealthAsync(registration => registration.Name == "sqlite", Ct);
+        Assert.Equal(HealthStatus.Healthy, report.Status);
+        Assert.Single(report.Entries);
+    }
 
     [Fact]
     public async Task SwaggerDocumentIsServed()

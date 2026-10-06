@@ -35,6 +35,19 @@ The APIs retain their local ports: Cart `5001`, Catalog `5002`, Identity `5003`,
 
 RabbitMQ uses dynamically allocated ports, so an existing Homebrew broker on `5672` does not need to be stopped. The AppHost manages its own separate broker and does not manage the Homebrew service. HTTP dashboard transport is enabled only for this local development profile; do not expose these ports publicly.
 
+### Health checks
+
+All four APIs expose anonymous, status-only health endpoints:
+
+- `GET /health/live`: process liveness, independent of external dependencies.
+- `GET /health/ready`: readiness, returning HTTP `200` (`Healthy`) or `503` (`Unhealthy`).
+
+Catalog readiness checks a SQLite category lookup and a RabbitMQ connection. Cart readiness checks a LiteDB cart lookup and a RabbitMQ connection. Database probes are small, non-destructive reads through the same repositories used by the APIs; they verify read access, not write permissions or database integrity. RabbitMQ probes verify broker connectivity, not consumer progress or message delivery.
+
+Identity has no external database and uses the basic self check. Gateway readiness calls Catalog and Cart's `/health/ready` endpoints with bounded HTTP timeouts. Dependency checks are registered with a five-second timeout and return no exception details. Synchronous database work cannot be forcibly interrupted by cancellation, so the probes deliberately use single-key lookups.
+
+The AppHost polls `/health/ready` for every API. Gateway startup waits for healthy Catalog and Cart resources, not merely running processes. During an outage, affected resources become unhealthy while `/health/live` remains healthy; health checks alone do not automatically restart services.
+
 ### Start services individually
 
 1. Start RabbitMQ locally, because the catalog and cart services exchange product events through it.
