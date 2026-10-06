@@ -18,8 +18,15 @@ internal sealed partial class RabbitMqProductEventPublisher : IProductEventPubli
 
     public RabbitMqProductEventPublisher(IConfiguration configuration, ILogger<RabbitMqProductEventPublisher> logger)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _connectionFactory = new ConnectionFactory { HostName = configuration["RabbitMq:Host"] ?? "localhost" };
+
+        if (configuration.GetConnectionString("rabbitmq") is { } connectionString)
+        {
+            _connectionFactory.Uri = new Uri(connectionString);
+            return;
+        }
 
         // Credentials come from environment variables or user-secrets. Without them the client's built-in
         // guest login is used, which RabbitMQ only accepts from localhost.

@@ -10,6 +10,33 @@ This folder contains the three services that work together for the security task
 
 ## How to run
 
+### Aspire AppHost (recommended for local development)
+
+Install the .NET 10 SDK and start Docker Desktop (or another Docker-compatible container runtime), then run from the repository root:
+
+```bash
+dotnet run --project OnlineShopping/OnlineShopping.AppHost
+```
+
+The AppHost builds and starts IdentityService, CatalogService, CartService, and ApiGateway as local .NET processes. Shared libraries and application/domain/data projects are built as dependencies, not launched separately.
+
+It also starts a RabbitMQ container using the official Aspire hosting integration:
+
+- Catalog and Cart wait for RabbitMQ to be healthy before starting.
+- Aspire injects the broker connection string, including its allocated port and generated credentials. No manual RabbitMQ credential setup is needed.
+- RabbitMQ uses a named data volume so queues and messages survive AppHost restarts. Its container stops with the AppHost.
+- The RabbitMQ management UI is exposed on an allocated port. Open the resource's management endpoint in the Aspire dashboard to inspect exchanges, queues, and messages; use the broker credentials shown in the resource configuration.
+- The gateway receives Catalog and Cart endpoint addresses from the AppHost.
+- Existing OpenTelemetry instrumentation exports logs, traces, and metrics to the AppHost dashboard automatically.
+
+Open `http://localhost:18888` and use the login link printed in the terminal. The dashboard provides resource status, console logs, and start/stop/restart controls in addition to telemetry.
+
+The APIs retain their local ports: Cart `5001`, Catalog `5002`, Identity `5003`, and Gateway `5004`. Swagger is available at `/swagger` on each API. Stop separately launched APIs and the Compose stack before using the AppHost, because the API ports and dashboard ports (`18888`, `4317`, and `18890`) must be free. AppHost and standalone Compose are alternative launch modes, not intended to run together.
+
+RabbitMQ uses dynamically allocated ports, so an existing Homebrew broker on `5672` does not need to be stopped. The AppHost manages its own separate broker and does not manage the Homebrew service. HTTP dashboard transport is enabled only for this local development profile; do not expose these ports publicly.
+
+### Start services individually
+
 1. Start RabbitMQ locally, because the catalog and cart services exchange product events through it.
 2. Start the identity service.
 3. Start the catalog service.
@@ -29,6 +56,7 @@ dotnet run --project OnlineShopping/CartService/src/CartService.Api/CartService.
 
 - If no credentials are configured, Catalog and Cart use the client's built-in `guest` login. RabbitMQ only accepts it from `localhost`, so a local broker with default settings works without any setup.
 - `docker-compose.yml` passes the login as `RabbitMq__Username` / `RabbitMq__Password` environment variables.
+- The AppHost supplies `ConnectionStrings__rabbitmq`, which takes precedence over individual `RabbitMq` settings.
 - For a broker with a different login, set the same environment variables, or use user-secrets (both API projects have a `UserSecretsId`):
 
 ```bash

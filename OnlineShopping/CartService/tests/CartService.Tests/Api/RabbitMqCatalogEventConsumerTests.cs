@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -8,6 +9,8 @@ using CartService.Bll;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using RabbitMQ.Client;
 
 namespace CartService.Tests.Api;
 
@@ -90,6 +93,33 @@ public sealed class RabbitMqCatalogEventConsumerTests(CartApiFactory factory) : 
         Assert.Throws<ArgumentNullException>(() => new RabbitMqCatalogEventConsumer(Manager, NullLogger<RabbitMqCatalogEventConsumer>.Instance, null!));
         Assert.Throws<ArgumentNullException>(() => new RabbitMqCatalogEventConsumer(null!, NullLogger<RabbitMqCatalogEventConsumer>.Instance, configuration));
         Assert.Throws<ArgumentNullException>(() => new RabbitMqCatalogEventConsumer(Manager, null!, configuration));
+    }
+
+    [Theory]
+    [InlineData(false, "legacy-broker", -1, "legacy-user", "legacy-password")]
+    [InlineData(true, "aspire-broker", 45678, "aspire-user", "aspire-password")]
+    public void ConstructorUsesAspireConnectionStringWhenPresent(bool useAspire, string host, int port, string username, string password)
+    {
+        var settings = new Dictionary<string, string?>
+        {
+            ["RabbitMq:Host"] = "legacy-broker",
+            ["RabbitMq:Username"] = "legacy-user",
+            ["RabbitMq:Password"] = "legacy-password",
+        };
+        if (useAspire)
+        {
+            settings["ConnectionStrings:rabbitmq"] = "amqp://aspire-user:aspire-password@aspire-broker:45678";
+        }
+
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        using var consumer = new RabbitMqCatalogEventConsumer(Manager, NullLogger<RabbitMqCatalogEventConsumer>.Instance, configuration);
+        FieldInfo connectionFactoryField = typeof(RabbitMqCatalogEventConsumer).GetField("_connectionFactory", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var connectionFactory = Assert.IsType<ConnectionFactory>(connectionFactoryField.GetValue(consumer));
+
+        Assert.Equal(host, connectionFactory.HostName);
+        Assert.Equal(port, connectionFactory.Port);
+        Assert.Equal(username, connectionFactory.UserName);
+        Assert.Equal(password, connectionFactory.Password);
     }
 
     private async Task<bool> ProcessAsync(string routingKey, byte[] body)
