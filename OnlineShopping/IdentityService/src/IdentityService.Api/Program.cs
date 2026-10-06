@@ -8,6 +8,7 @@ using ShoppingTelemetry;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddShoppingTelemetry("identity-service");
+builder.AddShoppingHealthChecks();
 
 builder.Services.AddSingleton<IdentityStore>();
 builder.Services.AddSingleton<TokenService>();
@@ -44,5 +45,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapShoppingHealthChecks();
 
 await app.RunAsync().ConfigureAwait(false);

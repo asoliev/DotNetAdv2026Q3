@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -7,7 +9,10 @@ using CartService.Bll;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using RabbitMQ.Client;
 
 namespace CartService.Tests.Api;
 
@@ -16,6 +21,18 @@ public sealed class RabbitMqCatalogEventConsumerTests(CartApiFactory factory) : 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private CartManager Manager => factory.Services.GetRequiredService<CartManager>();
+
+    [Fact]
+    public async Task LivenessIsAnonymousAndLiteDbProbeIsHealthy()
+    {
+        using HttpClient client = factory.CreateClient(authorization: null);
+        using HttpResponseMessage response = await client.GetAsync(new Uri("/health/live", UriKind.Relative), Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        HealthReport report = await factory.Services.GetRequiredService<HealthCheckService>()
+            .CheckHealthAsync(registration => registration.Name == "litedb", Ct);
+        Assert.Equal(HealthStatus.Healthy, report.Status);
+        Assert.Single(report.Entries);
+    }
 
     [Fact]
     public async Task ProductChangedMessageUpdatesItemsInCarts()
@@ -90,6 +107,33 @@ public sealed class RabbitMqCatalogEventConsumerTests(CartApiFactory factory) : 
         Assert.Throws<ArgumentNullException>(() => new RabbitMqCatalogEventConsumer(Manager, NullLogger<RabbitMqCatalogEventConsumer>.Instance, null!));
         Assert.Throws<ArgumentNullException>(() => new RabbitMqCatalogEventConsumer(null!, NullLogger<RabbitMqCatalogEventConsumer>.Instance, configuration));
         Assert.Throws<ArgumentNullException>(() => new RabbitMqCatalogEventConsumer(Manager, null!, configuration));
+    }
+
+    [Theory]
+    [InlineData(false, "legacy-broker", -1, "legacy-user", "legacy-password")]
+    [InlineData(true, "aspire-broker", 45678, "aspire-user", "aspire-password")]
+    public void ConstructorUsesAspireConnectionStringWhenPresent(bool useAspire, string host, int port, string username, string password)
+    {
+        var settings = new Dictionary<string, string?>
+        {
+            ["RabbitMq:Host"] = "legacy-broker",
+            ["RabbitMq:Username"] = "legacy-user",
+            ["RabbitMq:Password"] = "legacy-password",
+        };
+        if (useAspire)
+        {
+            settings["ConnectionStrings:rabbitmq"] = "amqp://aspire-user:aspire-password@aspire-broker:45678";
+        }
+
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        using var consumer = new RabbitMqCatalogEventConsumer(Manager, NullLogger<RabbitMqCatalogEventConsumer>.Instance, configuration);
+        FieldInfo connectionFactoryField = typeof(RabbitMqCatalogEventConsumer).GetField("_connectionFactory", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var connectionFactory = Assert.IsType<ConnectionFactory>(connectionFactoryField.GetValue(consumer));
+
+        Assert.Equal(host, connectionFactory.HostName);
+        Assert.Equal(port, connectionFactory.Port);
+        Assert.Equal(username, connectionFactory.UserName);
+        Assert.Equal(password, connectionFactory.Password);
     }
 
     private async Task<bool> ProcessAsync(string routingKey, byte[] body)

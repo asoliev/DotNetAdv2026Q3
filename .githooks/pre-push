@@ -71,7 +71,7 @@ seed_bin_from_obj() {
   # incremental build skips the copy step entirely.
   find "$solution_dir" -path "*/obj/*/net*/*.dll" -o \
                        -path "*/obj/*/net*/*.exe" 2>/dev/null | while IFS= read -r src; do
-    dest="${src/\/obj\//\/bin\/}"
+    dest="${src%%/obj/*}/bin/${src#*/obj/}"
     dest_dir=$(dirname "$dest")
     mkdir -p "$dest_dir"
     cp -f "$src" "$dest" 2>/dev/null || true

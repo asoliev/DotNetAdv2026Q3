@@ -10,6 +10,59 @@ This folder contains the three services that work together for the security task
 
 ## How to run
 
+### Build and test the complete solution
+
+`OnlineShopping.slnx` includes AppHost, all service projects, shared libraries, and tests. The service-specific solutions remain available for focused work. From the repository root:
+
+```bash
+dotnet build OnlineShopping/OnlineShopping.slnx
+dotnet test OnlineShopping/OnlineShopping.slnx
+```
+
+### Aspire AppHost (recommended for local development)
+
+Install the .NET 10 SDK and start Docker Desktop (or another Docker-compatible container runtime), then run from the repository root:
+
+```bash
+dotnet run --project OnlineShopping/OnlineShopping.AppHost
+```
+
+The AppHost builds and starts IdentityService, CatalogService, CartService, and ApiGateway as local .NET processes. Shared libraries and application/domain/data projects are built as dependencies, not launched separately.
+
+It also starts a RabbitMQ container using the official Aspire hosting integration:
+
+- Catalog and Cart wait for RabbitMQ to be healthy before starting.
+- Aspire injects the broker connection string, including its allocated port and generated credentials. No manual RabbitMQ credential setup is needed.
+- RabbitMQ uses a named data volume so queues and messages survive AppHost restarts. Its container stops with the AppHost.
+- The RabbitMQ management UI is exposed on an allocated port. Open the resource's management endpoint in the Aspire dashboard to inspect exchanges, queues, and messages; use the broker credentials shown in the resource configuration.
+- The gateway receives Catalog and Cart endpoint addresses from the AppHost.
+- Existing OpenTelemetry instrumentation exports logs, traces, and metrics to the AppHost dashboard automatically.
+
+Open `http://localhost:18888` and use the login link printed in the terminal. The dashboard provides resource status, console logs, and start/stop/restart controls in addition to telemetry.
+
+The APIs retain their local ports: Cart `5001`, Catalog `5002`, Identity `5003`, and Gateway `5004`. Swagger is available at `/swagger` on each API. Stop separately launched APIs and the Compose stack before using the AppHost, because the API ports and dashboard ports (`18888`, `4317`, and `18890`) must be free. AppHost and standalone Compose are alternative launch modes, not intended to run together.
+
+RabbitMQ uses dynamically allocated ports, so an existing Homebrew broker on `5672` does not need to be stopped. The AppHost manages its own separate broker and does not manage the Homebrew service. HTTP dashboard transport is enabled only for this local development profile; do not expose these ports publicly.
+
+### Health checks
+
+All four APIs expose anonymous, status-only health endpoints:
+
+- `GET /health/live`: process liveness, independent of external dependencies.
+- `GET /health/ready`: readiness, returning HTTP `200` (`Healthy`) or `503` (`Unhealthy`).
+
+`GET /health/details` returns JSON containing the overall `status` and a `checks` object with individual check names and statuses. It uses the same readiness checks and HTTP status codes, omits diagnostic details, and sends `Cache-Control: no-store`. Access requires an authenticated JWT with the existing `admin` role or the `Operations` role. In `Development` only, direct loopback clients (`127.0.0.1` or `::1`) may access it anonymously. Do not expose Development endpoints through a tunnel or local reverse proxy: those connections may appear to come from loopback.
+
+The AppHost currently uses HTTP for local development. After rebuilding and restarting it, inspect Catalog details with `curl http://localhost:5002/health/details` or Cart details with `curl http://localhost:5001/health/details`. Remote deployments must configure HTTPS at the server or trusted ingress and run outside Development; the health endpoint itself does not enforce HTTPS or configure TLS.
+
+Catalog readiness checks a SQLite category lookup and a RabbitMQ connection. Cart readiness checks a LiteDB cart lookup and a RabbitMQ connection. Database probes are small, non-destructive reads through the same repositories used by the APIs; they verify read access, not write permissions or database integrity. RabbitMQ probes verify broker connectivity, not consumer progress or message delivery.
+
+Identity has no external database and uses the basic self check. Gateway readiness calls Catalog and Cart's `/health/ready` endpoints with bounded HTTP timeouts. Dependency checks are registered with a five-second timeout and return no exception details. Synchronous database work cannot be forcibly interrupted by cancellation, so the probes deliberately use single-key lookups.
+
+The AppHost polls `/health/ready` for every API. Gateway startup waits for healthy Catalog and Cart resources, not merely running processes. During an outage, affected resources become unhealthy while `/health/live` remains healthy; health checks alone do not automatically restart services.
+
+### Start services individually
+
 1. Start RabbitMQ locally, because the catalog and cart services exchange product events through it.
 2. Start the identity service.
 3. Start the catalog service.
@@ -29,6 +82,7 @@ dotnet run --project OnlineShopping/CartService/src/CartService.Api/CartService.
 
 - If no credentials are configured, Catalog and Cart use the client's built-in `guest` login. RabbitMQ only accepts it from `localhost`, so a local broker with default settings works without any setup.
 - `docker-compose.yml` passes the login as `RabbitMq__Username` / `RabbitMq__Password` environment variables.
+- The AppHost supplies `ConnectionStrings__rabbitmq`, which takes precedence over individual `RabbitMq` settings.
 - For a broker with a different login, set the same environment variables, or use user-secrets (both API projects have a `UserSecretsId`):
 
 ```bash

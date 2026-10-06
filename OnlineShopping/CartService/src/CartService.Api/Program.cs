@@ -14,6 +14,12 @@ using ShoppingTelemetry;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddShoppingTelemetry("cart-service");
+builder.AddShoppingHealthChecks()
+    .AddDependencyCheck("litedb", async (services, token) =>
+    {
+        await services.GetRequiredService<ICartRepository>().GetByIdAsync("__health_probe__", token).ConfigureAwait(false);
+    })
+    .AddShoppingRabbitMqCheck(builder);
 var databaseDir = builder.Configuration["Database:Directory"] ?? builder.Environment.ContentRootPath;
 var databasePath = Path.Combine(databaseDir, "cart.db");
 
@@ -67,5 +73,6 @@ app.UseMiddleware<AccessTokenLoggingMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapShoppingHealthChecks();
 
 await app.RunAsync().ConfigureAwait(false);
