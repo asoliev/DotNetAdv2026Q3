@@ -1,0 +1,38 @@
+<Solution>
+  <Folder Name="/AppHost/">
+    <Project Path="OnlineShopping.AppHost/OnlineShopping.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/IdentityService/src/">
+    <Project Path="IdentityService/src/IdentityService.Api/IdentityService.Api.csproj" />
+  </Folder>
+  <Folder Name="/IdentityService/tests/">
+    <Project Path="IdentityService/tests/IdentityService.Tests/IdentityService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/CatalogService/src/">
+    <Project Path="CatalogService/src/CatalogService.Api/CatalogService.Api.csproj" />
+    <Project Path="CatalogService/src/CatalogService.Application/CatalogService.Application.csproj" />
+    <Project Path="CatalogService/src/CatalogService.Domain/CatalogService.Domain.csproj" />
+    <Project Path="CatalogService/src/CatalogService.Infrastructure/CatalogService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/CatalogService/tests/">
+    <Project Path="CatalogService/tests/CatalogService.Tests/CatalogService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/CartService/src/">
+    <Project Path="CartService/src/CartService.Api/CartService.Api.csproj" />
+    <Project Path="CartService/src/CartService.Bll/CartService.Bll.csproj" />
+    <Project Path="CartService/src/CartService.Dal/CartService.Dal.csproj" />
+  </Folder>
+  <Folder Name="/CartService/tests/">
+    <Project Path="CartService/tests/CartService.Tests/CartService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/ApiGateway/src/">
+    <Project Path="ApiGateway/src/ApiGateway.Api/ApiGateway.Api.csproj" />
+  </Folder>
+  <Folder Name="/ApiGateway/tests/">
+    <Project Path="ApiGateway/tests/ApiGateway.Tests/ApiGateway.Tests.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="Shared/ShoppingAuth/ShoppingAuth.csproj" />
+    <Project Path="Shared/ShoppingTelemetry/ShoppingTelemetry.csproj" />
+  </Folder>
+</Solution>

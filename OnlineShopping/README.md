@@ -10,6 +10,15 @@ This folder contains the three services that work together for the security task
 
 ## How to run
 
+### Build and test the complete solution
+
+`OnlineShopping.slnx` includes AppHost, all service projects, shared libraries, and tests. The service-specific solutions remain available for focused work. From the repository root:
+
+```bash
+dotnet build OnlineShopping/OnlineShopping.slnx
+dotnet test OnlineShopping/OnlineShopping.slnx
+```
+
 ### Aspire AppHost (recommended for local development)
 
 Install the .NET 10 SDK and start Docker Desktop (or another Docker-compatible container runtime), then run from the repository root:
