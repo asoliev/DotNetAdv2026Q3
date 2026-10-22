@@ -2,7 +2,7 @@
 
 ## Task 1. Determine the architectural style
 
-The current solution is best described as a classic monolithic, database-centric client/server architecture.
+The current solution is best described as a two-tier client/server, database-centric architecture: several independent fat clients integrated through one shared database.
 
 Why this fits:
 
@@ -11,13 +11,15 @@ Why this fits:
 - The system is tightly coupled: every client knows the database schema and business rules are spread across multiple applications.
 - The architecture is centered around one shared database rather than independent modules or services.
 
-This is not a clean microservice or SOA design because there are no independent services, no message bus, and no decoupled application components. It is more like a monolith where multiple frontends are connected directly to one database.
+This is not a clean microservice or SOA design because there are no independent services, no message bus, and no decoupled application components. It is a two-tier design in which the database itself is the integration mechanism — the classic Shared Database integration pattern.
 
-In short: the existing architecture is a monolithic database-centric architecture with multiple clients sharing one database.
+It is also not a monolith in the strict sense: a monolith is one deployable application, while here there are seven independently deployed applications. What is shared is the data store, not the codebase. Because the duplicated logic can in practice only be changed together, through the schema, this shape is often called a distributed monolith.
+
+In short: the existing architecture is a two-tier, database-centric client/server architecture in which multiple clients integrate through one shared database.
 
 ## Task 2. Architectural diagram from scratch
 
-A better design for this project would be a layered service-oriented architecture with a clear API layer and separate business domains.
+A better design for this project would be a service-based architecture with an API gateway and event-driven integration, with a clear API layer and separate business domains.
 
 ### Proposed architecture
 
@@ -37,8 +39,8 @@ A better design for this project would be a layered service-oriented architectur
   - User/Customer service
   - Payment/Checkout service
   - Reporting service
-- Shared data layer:
-  - SQL database or separate databases per service
+- Data layer:
+  - A separate database (or at minimum a separate schema) per service; no service reads another service's tables
 - Event bus / asynchronous integration:
   - For order updates, warehouse events, delivery events, etc.
 - Reporting app:
@@ -48,53 +50,9 @@ A better design for this project would be a layered service-oriented architectur
 
 [Architecture Diagram](./images/03-architecture-diagram.drawio)
 
-```text
-+-------------------+      +-------------------+      +-------------------+
-| Warehouse Desktop |      | Manager Web       |      | Customer Web      |
-+-------------------+      +-------------------+      +-------------------+
-            \                       |                         /
-             \                      |                        /
-              +---------------------+-------------------------+
-                                    |
-                                    v
-                        +----------------------+
-                        | API Gateway / BFF    |
-                        +----------------------+
-                                    |
-                +--------------------+--------------------+
-                |                                         |
-                v                                         v
-      +-------------------+                     +----------------------+
-      | Catalog Service   |                     | Order Service        |
-      +-------------------+                     +----------------------+
-                |                                         |
-                v                                         v
-      +-------------------+                     +----------------------+
-      | Warehouse Service |                     | Delivery Service     |
-      +-------------------+                     +----------------------+
-                |                                         |
-                +--------------------+--------------------+
-                                     |
-                                     v
-                        +--------------------------+
-                        | Shared / Domain Data     |
-                        | (SQL / service DBs)      |
-                        +--------------------------+
-                                     |
-                                     v
-                        +--------------------------+
-                        | Event Bus / Messaging    |
-                        +--------------------------+
-                                     |
-                      +---------------------------+
-                      | Reporting / Analytics     |
-                      | (third-party / BI)        |
-                      +---------------------------+
-```
-
 ## Pros and cons of both solutions
 
-### Current architecture: monolithic DB-centric
+### Current architecture: two-tier, shared database
 
 Pros:
 - Simple to implement at the beginning
@@ -112,7 +70,7 @@ Cons:
 - Hard to test changes safely
 - Reporting app depends directly on operational data and can cause performance issues
 
-### Proposed architecture: layered service-oriented design
+### Proposed architecture: service-based with an API gateway and events
 
 Pros:
 - Clear separation of responsibilities
@@ -133,7 +91,7 @@ Cons:
 
 ## Final conclusion
 
-The existing system is a monolithic, database-centric architecture because all client applications are tightly connected to the same database and there is no service abstraction. For a future-ready retail business that plans to expand into several countries, the better design is a layered service-oriented architecture with an API layer, separate business services, and an event-driven communication model.
+The existing system is a two-tier, database-centric client/server architecture because all client applications are tightly connected to the same database and there is no service abstraction. For a future-ready retail business that plans to expand into several countries, the better design is a service-based architecture with an API layer, separate business services, and an event-driven communication model.
 
 This approach improves:
 - maintainability
