@@ -38,13 +38,17 @@ A better design for this project would be a service-based architecture with an A
   - Delivery service
   - User/Customer service
   - Payment/Checkout service
-  - Reporting service
+  - Reporting ingestion service
 - Data layer:
-  - A separate database (or at minimum a separate schema) per service; no service reads another service's tables
+  - Each service owns its operational database; services do not read one another's tables.
 - Event bus / asynchronous integration:
-  - For order updates, warehouse events, delivery events, etc.
-- Reporting app:
-  - Reads data from reporting database / data warehouse / analytics stream, not directly from operational DB
+  - The Catalog service publishes `CatalogUpdated`; the Customer/User service publishes `CustomerUpdated`.
+  - The Order service publishes `OrderPlaced` and `OrderCancelled`, and consumes `StockReserved` and `PaymentAuthorized`/`PaymentFailed`.
+  - The Warehouse service consumes order events and publishes `StockReserved` and `OrderReady`.
+  - The Delivery service consumes `OrderReady` and publishes `DeliveryStatusChanged`.
+  - The Payment/Checkout service consumes `OrderPlaced` and publishes `PaymentAuthorized`/`PaymentFailed`.
+- Reporting data flow:
+  - Services publish domain events to the event bus; reporting ingestion consumes those events and builds a reporting read model in the analytics store; the third-party BI/reporting app reads that store, not operational databases.
 
 ### Diagram
 
