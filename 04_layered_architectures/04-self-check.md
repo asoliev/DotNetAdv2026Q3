@@ -10,9 +10,7 @@ _Questions for the self-check:_
 2. Is the below layered architecture correct and why? Is it possible from C to use B? from A to use C?
    ![layers image](./images/layers-img-question.png)
 
-   The architecture is correct only if dependencies follow the intended direction of the layers. In a layered system, outer layers can use inner layers, but inner layers should not depend on outer layers.
-
-   So, C can use B only if B is an inner layer for C. A should not use C if that breaks the dependency rule. If the diagram shows dependencies going upward or sideways in the wrong direction, then it is not a correct layered architecture.
+   The diagram is not correct for a strict layered architecture. A depends on B and C, and B depends on C, which follow the expected inward direction. However, C also depends on B, creating a circular dependency between B and C. A direct dependency from A to C bypasses B; this may be allowed in a relaxed layered architecture, but not in a strict one.
 
 
 3. Is DDD a type of layered architecture? What is Anemic model? Is it really an antipattern?
