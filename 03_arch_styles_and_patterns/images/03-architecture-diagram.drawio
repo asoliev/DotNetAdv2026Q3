@@ -1,0 +1,131 @@
+<mxfile host="Electron" agent="Mozilla/5.0">
+  <diagram id="store-architecture" name="Store Architecture">
+    <mxGraphModel dx="1712" dy="1060" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="root" />
+        <mxCell id="layer1" parent="root" />
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-29" edge="1" parent="layer1" source="warehouse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="198.83333333333348" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="warehouse" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Warehouse Desktop" vertex="1">
+          <mxGeometry height="70" width="180" x="109" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-31" edge="1" parent="layer1" source="manager" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="439.1428571428571" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manager" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Manager Web" vertex="1">
+          <mxGeometry height="70" width="180" x="349" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-12" edge="1" parent="layer1" source="customerWeb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="customerWeb" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Customer Web" vertex="1">
+          <mxGeometry height="70" width="180" x="590" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-32" edge="1" parent="layer1" source="courierMobile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930.0952380952381" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="courierMobile" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Courier Mobile" vertex="1">
+          <mxGeometry height="70" width="180" x="840" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-30" edge="1" parent="layer1" source="customerMobile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1170.095238095238" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="customerMobile" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Customer Mobile" vertex="1">
+          <mxGeometry height="70" width="180" x="1080" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-17" edge="1" parent="layer1" source="gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;startArrow=classic;startFill=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-24" edge="1" parent="layer1" source="gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="catalog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-26" edge="1" parent="layer1" source="gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" target="warehouseSvc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="API Gateway / BFF" vertex="1">
+          <mxGeometry height="70" width="520" x="420" y="244" as="geometry" />
+        </mxCell>
+        <mxCell id="catalog" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Catalog Service&lt;/b&gt;&lt;br&gt;Publishes: CatalogUpdated" vertex="1">
+          <mxGeometry height="110" width="220" x="60" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="order" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Order Service&lt;/b&gt;&lt;br&gt;Publishes: OrderPlaced, OrderCancelled&lt;br&gt;Consumes: StockReserved, PaymentAuthorized/Failed" vertex="1">
+          <mxGeometry height="110" width="220" x="340" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="warehouseSvc" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Warehouse Service&lt;/b&gt;&lt;br&gt;Publishes: StockReserved, OrderReady&lt;br&gt;Consumes: OrderPlaced/Cancelled" vertex="1">
+          <mxGeometry height="110" width="220" x="620" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Delivery Service&lt;/b&gt;&lt;br&gt;Publishes: DeliveryStatusChanged&lt;br&gt;Consumes: OrderReady" vertex="1">
+          <mxGeometry height="110" width="220" x="900" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="reporting-ingestion" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Reporting Ingestion Service&#xa;Consumes domain events from the bus" vertex="1"><mxGeometry height="90" width="400" x="280" y="850" as="geometry" /></mxCell>
+        <mxCell id="db" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Reporting Analytics Store&#xa;(read model / data warehouse)" vertex="1">
+          <mxGeometry height="90" width="450" x="800" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="bus" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Pub/sub Event Bus / Broker&#xa;Services publish and subscribe to topics: CatalogUpdated, OrderPlaced/Cancelled, StockReserved, OrderReady, DeliveryStatusChanged, CustomerUpdated, PaymentAuthorized/Failed" vertex="1">
+          <mxGeometry height="90" width="1200" x="300" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="reporting" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="Third-party Reporting / BI&#xa;Reads the analytics store; no operational DB access" vertex="1">
+          <mxGeometry height="90" width="400" x="1320" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Customer / User Service&lt;/b&gt;&lt;br&gt;Publishes: CustomerUpdated" vertex="1">
+          <mxGeometry height="110" width="220" x="1180" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="payment" parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Payment / Checkout Service&lt;/b&gt;&lt;br&gt;Publishes: PaymentAuthorized/Failed&lt;br&gt;Consumes: OrderPlaced" vertex="1">
+          <mxGeometry height="110" width="220" x="1460" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="label" parent="layer1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=14;" value="Designed for future international expansion" vertex="1">
+          <mxGeometry height="30" width="520" x="330" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="edge9" edge="1" parent="layer1" source="gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="delivery" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge19" edge="1" parent="layer1" source="bus" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="reporting-ingestion" value="Domain events">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="reporting-store-update" edge="1" parent="layer1" source="reporting-ingestion" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="db" value="Build / update read model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="reporting-read" edge="1" parent="layer1" source="db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" target="reporting" value="Analytics data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-15" edge="1" parent="layer1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="200" y="200" as="sourcePoint" />
+            <mxPoint x="1170" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="UI9rKX8l0_y8zFkX8cA0-25" edge="1" parent="layer1" source="gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.518;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="order">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="catalogDb" parent="layer1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Catalog Service DB" vertex="1"><mxGeometry height="70" width="180" x="80" y="500" as="geometry" /></mxCell>
+        <mxCell id="orderDb" parent="layer1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Order Service DB" vertex="1"><mxGeometry height="70" width="180" x="360" y="500" as="geometry" /></mxCell>
+        <mxCell id="warehouseDb" parent="layer1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Warehouse Service DB" vertex="1"><mxGeometry height="70" width="180" x="640" y="500" as="geometry" /></mxCell>
+        <mxCell id="deliveryDb" parent="layer1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Delivery Service DB" vertex="1"><mxGeometry height="70" width="180" x="920" y="500" as="geometry" /></mxCell>
+        <mxCell id="userDb" parent="layer1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Customer Service DB" vertex="1"><mxGeometry height="70" width="180" x="1200" y="500" as="geometry" /></mxCell>
+        <mxCell id="paymentDb" parent="layer1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" value="Payment Service DB" vertex="1"><mxGeometry height="70" width="180" x="1480" y="500" as="geometry" /></mxCell>
+        <mxCell id="db-boundary-note" parent="layer1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontStyle=2;fontSize=12;" value="Each service owns its operational data; services do not read one another's databases." vertex="1"><mxGeometry height="26" width="800" x="500" y="590" as="geometry" /></mxCell>
+        <mxCell id="catalog-db-edge" edge="1" parent="layer1" source="catalog" target="catalogDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="order-db-edge" edge="1" parent="layer1" source="order" target="orderDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="warehouse-db-edge" edge="1" parent="layer1" source="warehouseSvc" target="warehouseDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="delivery-db-edge" edge="1" parent="layer1" source="delivery" target="deliveryDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="user-db-edge" edge="1" parent="layer1" source="user" target="userDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="payment-db-edge" edge="1" parent="layer1" source="payment" target="paymentDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="gateway-user" edge="1" parent="layer1" source="gateway" target="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="gateway-payment" edge="1" parent="layer1" source="gateway" target="payment" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
