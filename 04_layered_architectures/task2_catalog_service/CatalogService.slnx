@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/CatalogService.Api/CatalogService.Api.csproj" />
     <Project Path="src/CatalogService.Application/CatalogService.Application.csproj" />
     <Project Path="src/CatalogService.Domain/CatalogService.Domain.csproj" />
     <Project Path="src/CatalogService.Infrastructure/CatalogService.Infrastructure.csproj" />

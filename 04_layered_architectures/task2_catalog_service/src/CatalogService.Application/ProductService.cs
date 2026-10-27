@@ -23,6 +23,21 @@ public sealed class ProductService
         return _productRepository.GetAllAsync(cancellationToken);
     }
 
+    public Task<PagedResult<Product>> GetPageAsync(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (pageNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be positive.");
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be between 1 and 100.");
+        }
+
+        return _productRepository.GetPageAsync(categoryId, pageNumber, pageSize, cancellationToken);
+    }
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(product);

@@ -4,18 +4,18 @@ public sealed class Cart
 {
     private readonly List<CartItem> _items = new();
 
-    public Cart(Guid id)
+    public Cart(string key)
     {
-        if (id == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(key))
         {
-            throw new ArgumentException("Cart id must not be empty.", nameof(id));
+            throw new ArgumentException("Cart key must not be empty.", nameof(key));
         }
 
-        Id = id;
+        Id = key.Trim();
     }
 
-    public Cart(Guid id, IEnumerable<CartItem> items)
-        : this(id)
+    public Cart(string key, IEnumerable<CartItem> items)
+        : this(key)
     {
         foreach (var item in items)
         {
@@ -23,7 +23,7 @@ public sealed class Cart
         }
     }
 
-    public Guid Id { get; }
+    public string Id { get; }
 
     public IReadOnlyList<CartItem> GetItems()
     {

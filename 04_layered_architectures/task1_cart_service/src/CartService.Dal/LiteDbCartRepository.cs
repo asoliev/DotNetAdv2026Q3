@@ -17,11 +17,11 @@ public sealed class LiteDbCartRepository : ICartRepository, IDisposable
         _database = new LiteDatabase($"Filename={databasePath};Connection=shared");
     }
 
-    public Task<Cart?> GetByIdAsync(Guid cartId, CancellationToken cancellationToken = default)
+    public Task<Cart?> GetByIdAsync(string cartKey, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var document = GetCollection().FindById(cartId);
+        var document = GetCollection().FindById(cartKey);
         return Task.FromResult(document is null ? null : MapToDomain(document));
     }
 
