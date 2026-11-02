@@ -259,6 +259,9 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 
+# JetBrains IDE settings
+.idea/
+
 # Local SQLite databases
 *.db
 *.db-shm
