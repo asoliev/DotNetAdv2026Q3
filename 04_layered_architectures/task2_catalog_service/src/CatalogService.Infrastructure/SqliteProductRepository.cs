@@ -105,7 +105,7 @@ public sealed class SqliteProductRepository : IProductRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Product product, CancellationToken cancellationToken = default)
     {
         using var connection = _database.CreateConnection();
         using var command = connection.CreateCommand();
@@ -121,25 +121,16 @@ public sealed class SqliteProductRepository : IProductRepository
             WHERE Id = $id;
             """;
         ApplyParameters(command, product);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         using var connection = _database.CreateConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Products WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id.ToString());
-        await command.ExecuteNonQueryAsync(cancellationToken);
-    }
-
-    public async Task DeleteByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
-    {
-        using var connection = _database.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM Products WHERE CategoryId = $categoryId";
-        command.Parameters.AddWithValue("$categoryId", categoryId.ToString());
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
     private static void ApplyParameters(SqliteCommand command, Product product)

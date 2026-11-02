@@ -45,16 +45,21 @@ public sealed class ProductService
         await _productRepository.AddAsync(product, cancellationToken);
     }
 
-    public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Product product, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(product);
         await EnsureCategoryExistsAsync(product.CategoryId, cancellationToken);
-        await _productRepository.UpdateAsync(product, cancellationToken);
+        return await _productRepository.UpdateAsync(product, cancellationToken);
     }
 
-    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _productRepository.DeleteAsync(id, cancellationToken);
+    }
+
+    public Task<bool> CategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        return _categoryRepository.ExistsAsync(categoryId, cancellationToken);
     }
 
     private async Task EnsureCategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken)

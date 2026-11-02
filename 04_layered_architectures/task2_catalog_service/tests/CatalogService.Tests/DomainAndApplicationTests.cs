@@ -32,7 +32,7 @@ public class DomainAndApplicationTests
     {
         var parentId = Guid.NewGuid();
         var categoryRepository = new FakeCategoryRepository(parentId);
-        var service = new CategoryService(categoryRepository, new FakeProductRepository());
+        var service = new CategoryService(categoryRepository);
 
         var category = new Category(Guid.NewGuid(), "Accessories", null, parentId);
 
@@ -59,23 +59,46 @@ public class DomainAndApplicationTests
     }
 
     [Fact]
-    public async Task CategoryService_DeleteAsync_RemovesRelatedProductsFirst()
+    public async Task CategoryService_DeleteAsync_UsesAtomicRepositoryOperation()
     {
         var categoryId = Guid.NewGuid();
         var categoryRepository = new FakeCategoryRepository(categoryId);
-        var productRepository = new FakeProductRepository(
-            new Product(Guid.NewGuid(), "Mouse", null, null, categoryId, 19.99m, 2));
-        var service = new CategoryService(categoryRepository, productRepository);
+        var service = new CategoryService(categoryRepository);
 
-        await service.DeleteAsync(categoryId);
+        var deleted = await service.DeleteAsync(categoryId);
 
-        Assert.Equal(categoryId, productRepository.DeletedCategoryIds.Single());
+        Assert.True(deleted);
         Assert.Equal(categoryId, categoryRepository.DeletedCategoryIds.Single());
+    }
+
+    [Fact]
+    public async Task CategoryService_DeleteAsync_WhenCategoryHasChildren_ThrowsConflict()
+    {
+        var categoryId = Guid.NewGuid();
+        var categoryRepository = new FakeCategoryRepository(categoryId);
+        categoryRepository.CategoriesWithChildren.Add(categoryId);
+        var service = new CategoryService(categoryRepository);
+
+        await Assert.ThrowsAsync<ConflictException>(() => service.DeleteAsync(categoryId));
+        Assert.Empty(categoryRepository.DeletedCategoryIds);
+    }
+
+    [Fact]
+    public async Task CategoryService_UpdateAsync_WhenCategoryIsMissing_ReturnsFalse()
+    {
+        var categoryRepository = new FakeCategoryRepository();
+        var service = new CategoryService(categoryRepository);
+        var category = new Category(Guid.NewGuid(), "Missing");
+
+        var updated = await service.UpdateAsync(category);
+
+        Assert.False(updated);
     }
 
     private sealed class FakeCategoryRepository : ICategoryRepository
     {
         private readonly HashSet<Guid> _existingCategories = new();
+        public HashSet<Guid> CategoriesWithChildren { get; } = new();
 
         public FakeCategoryRepository(params Guid[] existingCategoryIds)
         {
@@ -87,7 +110,7 @@ public class DomainAndApplicationTests
 
         public List<Category> StoredCategories { get; } = new();
 
-    public List<Guid> DeletedCategoryIds { get; } = new();
+        public List<Guid> DeletedCategoryIds { get; } = new();
 
         public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
@@ -106,15 +129,20 @@ public class DomainAndApplicationTests
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
+        public Task<bool> UpdateAsync(Category category, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            return Task.FromResult(_existingCategories.Contains(category.Id));
         }
 
-        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        public Task<bool> DeleteWithProductsAsync(Guid id, CancellationToken cancellationToken = default)
         {
             DeletedCategoryIds.Add(id);
-            return Task.CompletedTask;
+            return Task.FromResult(_existingCategories.Remove(id));
+        }
+
+        public Task<bool> HasChildrenAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CategoriesWithChildren.Contains(id));
         }
 
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -161,24 +189,21 @@ public class DomainAndApplicationTests
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+        public Task<bool> UpdateAsync(Product product, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            var index = _products.FindIndex(existing => existing.Id == product.Id);
+            if (index < 0)
+            {
+                return Task.FromResult(false);
+            }
+
+            _products[index] = product;
+            return Task.FromResult(true);
         }
 
-        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            _products.RemoveAll(product => product.Id == id);
-            return Task.CompletedTask;
+            return Task.FromResult(_products.RemoveAll(product => product.Id == id) > 0);
         }
-
-        public Task DeleteByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
-        {
-            DeletedCategoryIds.Add(categoryId);
-            _products.RemoveAll(product => product.CategoryId == categoryId);
-            return Task.CompletedTask;
-        }
-
-        public List<Guid> DeletedCategoryIds { get; } = new();
     }
 }

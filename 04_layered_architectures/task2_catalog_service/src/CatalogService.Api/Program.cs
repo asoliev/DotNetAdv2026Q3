@@ -12,6 +12,8 @@ builder.Services.AddSingleton<ICategoryRepository>(_ => new SqliteCategoryReposi
 builder.Services.AddSingleton<IProductRepository>(_ => new SqliteProductRepository(databasePath));
 builder.Services.AddSingleton<CategoryService>();
 builder.Services.AddSingleton<ProductService>();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -41,6 +43,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+app.UseExceptionHandler();
 var versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
 
 app.UseSwagger();

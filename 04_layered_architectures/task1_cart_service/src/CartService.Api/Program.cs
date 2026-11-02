@@ -9,6 +9,8 @@ var databasePath = Path.Combine(builder.Environment.ContentRootPath, "cart.db");
 
 builder.Services.AddSingleton<ICartRepository>(_ => new LiteDbCartRepository(databasePath));
 builder.Services.AddSingleton<CartService.Bll.CartService>();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -38,6 +40,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+app.UseExceptionHandler();
 var versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
 
 app.UseSwagger();

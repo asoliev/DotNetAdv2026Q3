@@ -12,9 +12,7 @@ public interface IProductRepository
 
     Task AddAsync(Product product, CancellationToken cancellationToken = default);
 
-    Task UpdateAsync(Product product, CancellationToken cancellationToken = default);
+    Task<bool> UpdateAsync(Product product, CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
-
-    Task DeleteByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

@@ -14,14 +14,10 @@ namespace CatalogService.Api;
 public sealed class ProductsController : ControllerBase
 {
     private readonly ProductService _productService;
-    private readonly IProductRepository _productRepository;
-    private readonly ICategoryRepository _categoryRepository;
 
-    public ProductsController(ProductService productService, IProductRepository productRepository, ICategoryRepository categoryRepository)
+    public ProductsController(ProductService productService)
     {
         _productService = productService;
-        _productRepository = productRepository;
-        _categoryRepository = categoryRepository;
     }
 
     /// <summary>
@@ -30,7 +26,7 @@ public sealed class ProductsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ProductResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var product = await _productRepository.GetByIdAsync(id, cancellationToken);
+        var product = await _productService.GetByIdAsync(id, cancellationToken);
         return product is null ? NotFound() : Ok(Map(product));
     }
 
@@ -58,16 +54,9 @@ public sealed class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var product = new Product(Guid.NewGuid(), request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
-            await _productService.AddAsync(product, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, Map(product));
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(exception.Message);
-        }
+        var product = new Product(Guid.NewGuid(), request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
+        await _productService.AddAsync(product, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, Map(product));
     }
 
     /// <summary>
@@ -76,16 +65,8 @@ public sealed class ProductsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var product = new Product(id, request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
-            await _productService.UpdateAsync(product, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(exception.Message);
-        }
+        var product = new Product(id, request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
+        return await _productService.UpdateAsync(product, cancellationToken) ? NoContent() : NotFound();
     }
 
     /// <summary>
@@ -94,19 +75,12 @@ public sealed class ProductsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var product = await _productRepository.GetByIdAsync(id, cancellationToken);
-        if (product is null)
-        {
-            return NotFound();
-        }
-
-        await _productService.DeleteAsync(id, cancellationToken);
-        return NoContent();
+        return await _productService.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
     }
 
     private async Task<ActionResult<PageResponse<ProductResponse>>> GetPageInternal(Guid? categoryId, int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
-        if (categoryId is not null && !await _categoryRepository.ExistsAsync(categoryId.Value, cancellationToken))
+        if (categoryId is not null && !await _productService.CategoryExistsAsync(categoryId.Value, cancellationToken))
         {
             return NotFound();
         }
