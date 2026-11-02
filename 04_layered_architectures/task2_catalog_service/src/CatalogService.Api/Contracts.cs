@@ -10,7 +10,7 @@ public sealed record CategoryResponse(Guid Id, string Name, ImageResponse? Image
 
 /// <summary>Category details submitted to create or replace a category.</summary>
 public sealed record CategoryUpsertRequest(
-    [property: Required, StringLength(50)] string Name,
+    [param: Required, StringLength(50)] string Name,
     ImageRequest? Image,
     Guid? ParentCategoryId);
 
@@ -19,15 +19,15 @@ public sealed record ProductResponse(Guid Id, string Name, string? Description, 
 
 /// <summary>Product details submitted to create or replace a product.</summary>
 public sealed record ProductUpsertRequest(
-    [property: Required, StringLength(50)] string Name,
+    [param: Required, StringLength(50)] string Name,
     string? Description,
     ImageRequest? Image,
     Guid CategoryId,
-    [property: Range(typeof(decimal), "0.01", "79228162514264337593543950335")] decimal Price,
-    [property: Range(1, int.MaxValue)] int Amount);
+    [param: Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true)] decimal Price,
+    [param: Range(1, int.MaxValue)] int Amount);
 
 /// <summary>Image details submitted with a catalog resource.</summary>
-public sealed record ImageRequest([property: Required] string Url, string? AltText);
+public sealed record ImageRequest([param: Required] string Url, string? AltText);
 
 /// <summary>Image details returned for a catalog resource.</summary>
 public sealed record ImageResponse(string Url, string? AltText);

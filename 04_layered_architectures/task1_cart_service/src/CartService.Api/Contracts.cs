@@ -10,14 +10,14 @@ public sealed record CartResponse(string CartKey, IReadOnlyList<CartItemResponse
 
 /// <summary>Cart item submitted to the API.</summary>
 public sealed record CartItemRequest(
-    [property: Range(1, int.MaxValue)] int Id,
-    [property: Required] string Name,
+    [param: Range(1, int.MaxValue)] int Id,
+    [param: Required] string Name,
     CartItemImageRequest? Image,
-    [property: Range(typeof(decimal), "0.01", "79228162514264337593543950335")] decimal Price,
-    [property: Range(1, int.MaxValue)] int Quantity);
+    [param: Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true)] decimal Price,
+    [param: Range(1, int.MaxValue)] int Quantity);
 
 /// <summary>Image details submitted with a cart item.</summary>
-public sealed record CartItemImageRequest([property: Required] string Url, string? AltText);
+public sealed record CartItemImageRequest([param: Required] string Url, string? AltText);
 
 /// <summary>Image details returned for a cart item.</summary>
 public sealed record CartItemImageResponse(string Url, string? AltText);
