@@ -15,6 +15,8 @@ public sealed class ProductsController : ControllerBase
 {
     private readonly ProductService _productService;
 
+    /// <summary>Initializes the products controller.</summary>
+    /// <param name="productService">Application service for product operations.</param>
     public ProductsController(ProductService productService)
     {
         _productService = productService;
@@ -24,6 +26,12 @@ public sealed class ProductsController : ControllerBase
     /// Returns a product by identifier.
     /// </summary>
     /// <remarks>The response includes hypermedia links for related actions.</remarks>
+    /// <param name="id">Product identifier.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <response code="200">The requested product.</response>
+    /// <response code="404">No product has the specified identifier.</response>
+    [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ProductResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -35,24 +43,47 @@ public sealed class ProductsController : ControllerBase
     /// Returns a page of products.
     /// </summary>
     /// <remarks>The response includes hypermedia links to navigate available pages.</remarks>
+    /// <param name="categoryId">Optional category filter.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="pageSize">Number of products per page (1–100).</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <response code="200">A page of products.</response>
+    /// <response code="400">Pagination values are invalid.</response>
+    /// <response code="404">The specified category was not found.</response>
+    [ProducesResponseType(typeof(PageResponse<ProductResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpGet]
     public Task<ActionResult<PageResponse<ProductResponse>>> GetPage([FromQuery] Guid? categoryId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
         return GetPageInternal(categoryId, pageNumber, pageSize, cancellationToken);
     }
 
-    /// <summary>
-    /// Returns a page of products for a specific category.
-    /// </summary>
+    /// <summary>Returns a page of products for a specific category.</summary>
+    /// <remarks>The response includes hypermedia links to navigate available pages.</remarks>
+    /// <param name="categoryId">Category identifier.</param>
+    /// <param name="pageNumber">One-based page number.</param>
+    /// <param name="pageSize">Number of products per page (1–100).</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <response code="200">A page of products.</response>
+    /// <response code="400">Pagination values are invalid.</response>
+    /// <response code="404">The specified category was not found.</response>
+    [ProducesResponseType(typeof(PageResponse<ProductResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpGet("~/api/v{version:apiVersion}/categories/{categoryId:guid}/products")]
     public Task<ActionResult<PageResponse<ProductResponse>>> GetPageByCategory(Guid categoryId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
         return GetPageInternal(categoryId, pageNumber, pageSize, cancellationToken);
     }
 
-    /// <summary>
-    /// Creates a product.
-    /// </summary>
+    /// <summary>Creates a product.</summary>
+    /// <param name="request">Product details.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <response code="201">The product was created.</response>
+    /// <response code="400">The product details or category are invalid.</response>
+    [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [HttpPost]
     public async Task<ActionResult<ProductResponse>> Create([FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -61,9 +92,16 @@ public sealed class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = product.Id, version = Version }, Map(product));
     }
 
-    /// <summary>
-    /// Updates a product.
-    /// </summary>
+    /// <summary>Replaces a product.</summary>
+    /// <param name="id">Product identifier.</param>
+    /// <param name="request">Replacement product details.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <response code="204">The product was updated.</response>
+    /// <response code="400">The product details or category are invalid.</response>
+    /// <response code="404">No product has the specified identifier.</response>
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest request, CancellationToken cancellationToken)
     {
@@ -71,9 +109,13 @@ public sealed class ProductsController : ControllerBase
         return await _productService.UpdateAsync(product, cancellationToken) ? NoContent() : NotFound();
     }
 
-    /// <summary>
-    /// Deletes a product.
-    /// </summary>
+    /// <summary>Deletes a product.</summary>
+    /// <param name="id">Product identifier.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <response code="204">The product was deleted.</response>
+    /// <response code="404">No product has the specified identifier.</response>
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
