@@ -23,6 +23,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>
     /// Returns a product by identifier.
     /// </summary>
+    /// <remarks>The response includes hypermedia links for related actions.</remarks>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ProductResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -33,6 +34,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>
     /// Returns a page of products.
     /// </summary>
+    /// <remarks>The response includes hypermedia links to navigate available pages.</remarks>
     [HttpGet]
     public Task<ActionResult<PageResponse<ProductResponse>>> GetPage([FromQuery] Guid? categoryId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
@@ -56,7 +58,7 @@ public sealed class ProductsController : ControllerBase
     {
         var product = new Product(Guid.NewGuid(), request.Name, request.Description, MapImage(request.Image), request.CategoryId, request.Price, request.Amount);
         await _productService.AddAsync(product, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = product.Id, version = "1" }, Map(product));
+        return CreatedAtAction(nameof(GetById), new { id = product.Id, version = Version }, Map(product));
     }
 
     /// <summary>
@@ -86,12 +88,49 @@ public sealed class ProductsController : ControllerBase
         }
 
         var page = await _productService.GetPageAsync(categoryId, pageNumber, pageSize, cancellationToken);
-        return Ok(new PageResponse<ProductResponse>(page.Items.Select(Map).ToList(), page.TotalCount, page.PageNumber, page.PageSize));
+        return Ok(new PageResponse<ProductResponse>(page.Items.Select(Map).ToList(), page.TotalCount, page.PageNumber, page.PageSize, BuildPageLinks(categoryId, page)));
     }
 
-    private static ProductResponse Map(Product product)
+    private string Version => HttpContext.GetRequestedApiVersion()?.ToString("VVV") ?? "1";
+
+    private ProductResponse Map(Product product)
     {
-        return new ProductResponse(product.Id, product.Name, product.Description, MapImage(product.Image), product.CategoryId, product.Price, product.Amount);
+        var routeValues = new { id = product.Id, version = Version };
+        var links = new List<LinkResponse>
+        {
+            new(Url.ActionLink(nameof(GetById), "Products", routeValues)!, "self", "GET"),
+            new(Url.ActionLink(nameof(Update), "Products", routeValues)!, "update", "PUT"),
+            new(Url.ActionLink(nameof(Delete), "Products", routeValues)!, "delete", "DELETE"),
+            new(Url.ActionLink(nameof(CategoriesController.GetById), "Categories", new { id = product.CategoryId, version = Version })!, "category", "GET")
+        };
+
+        return new ProductResponse(product.Id, product.Name, product.Description, MapImage(product.Image), product.CategoryId, product.Price, product.Amount, links);
+    }
+
+    private List<LinkResponse> BuildPageLinks(Guid? categoryId, PagedResult<Product> page)
+    {
+        string PageLink(int number) => Url.ActionLink(nameof(GetPage), "Products", new
+        {
+            version = Version,
+            categoryId,
+            pageNumber = number,
+            pageSize = page.PageSize
+        })!;
+
+        var links = new List<LinkResponse> { new(PageLink(page.PageNumber), "self", "GET") };
+        var totalPages = (int)Math.Ceiling(page.TotalCount / (double)page.PageSize);
+
+        if (page.PageNumber > 1)
+        {
+            links.Add(new LinkResponse(PageLink(page.PageNumber - 1), "prev", "GET"));
+        }
+
+        if (page.PageNumber < totalPages)
+        {
+            links.Add(new LinkResponse(PageLink(page.PageNumber + 1), "next", "GET"));
+        }
+
+        return links;
     }
 
     private static ImageResponse? MapImage(ImageInfo? image)

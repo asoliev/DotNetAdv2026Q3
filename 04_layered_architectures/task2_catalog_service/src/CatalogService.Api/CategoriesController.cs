@@ -33,6 +33,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>
     /// Returns a category by identifier.
     /// </summary>
+    /// <remarks>The response includes hypermedia links for related actions.</remarks>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CategoryResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -48,7 +49,7 @@ public sealed class CategoriesController : ControllerBase
     {
         var category = new Category(Guid.NewGuid(), request.Name, MapImage(request.Image), request.ParentCategoryId);
         await _categoryService.AddAsync(category, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = category.Id, version = "1" }, Map(category));
+        return CreatedAtAction(nameof(GetById), new { id = category.Id, version = Version }, Map(category));
     }
 
     /// <summary>
@@ -70,9 +71,19 @@ public sealed class CategoriesController : ControllerBase
         return await _categoryService.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
     }
 
-    private static CategoryResponse Map(Category category)
+    private string Version => HttpContext.GetRequestedApiVersion()?.ToString("VVV") ?? "1";
+
+    private CategoryResponse Map(Category category)
     {
-        return new CategoryResponse(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId);
+        var links = new List<LinkResponse>
+        {
+            new(Url.ActionLink(nameof(GetById), "Categories", new { id = category.Id, version = Version })!, "self", "GET"),
+            new(Url.ActionLink(nameof(Update), "Categories", new { id = category.Id, version = Version })!, "update", "PUT"),
+            new(Url.ActionLink(nameof(Delete), "Categories", new { id = category.Id, version = Version })!, "delete", "DELETE"),
+            new(Url.ActionLink(nameof(ProductsController.GetPageByCategory), "Products", new { categoryId = category.Id, version = Version })!, "products", "GET")
+        };
+
+        return new CategoryResponse(category.Id, category.Name, MapImage(category.Image), category.ParentCategoryId, links);
     }
 
     private static ImageResponse? MapImage(ImageInfo? image)
