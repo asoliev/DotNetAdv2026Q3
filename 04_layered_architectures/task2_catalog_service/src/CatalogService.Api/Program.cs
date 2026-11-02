@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-var databasePath = Path.Combine(builder.Environment.ContentRootPath, "catalog.db");
+var databasePath = builder.Configuration["Database:Path"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "catalog.db");
 
 builder.Services.AddSingleton<ICategoryRepository>(_ => new SqliteCategoryRepository(databasePath));
 builder.Services.AddSingleton<IProductRepository>(_ => new SqliteProductRepository(databasePath));
@@ -58,3 +59,5 @@ app.UseSwaggerUI(options =>
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

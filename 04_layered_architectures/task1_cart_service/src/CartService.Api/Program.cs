@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-var databasePath = Path.Combine(builder.Environment.ContentRootPath, "cart.db");
+var databasePath = builder.Configuration["Database:Path"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "cart.db");
 
 builder.Services.AddSingleton<ICartRepository>(_ => new LiteDbCartRepository(databasePath));
 builder.Services.AddSingleton<CartService.Bll.CartService>();
@@ -55,3 +56,5 @@ app.UseSwaggerUI(options =>
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

@@ -6,5 +6,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CartService.Tests/CartService.Tests.csproj" />
+    <Project Path="tests/CartService.Api.Tests/CartService.Api.Tests.csproj" />
   </Folder>
 </Solution>
