@@ -121,6 +121,16 @@ public sealed class CatalogApiTests : IClassFixture<CatalogApiFactory>
         Assert.Contains("category", relations);
     }
 
+    [Fact]
+    public async Task SwaggerDocument_IsAvailable()
+    {
+        using var response = await _client.GetAsync("/swagger/v1/swagger.json");
+        var document = await ReadJsonAsync(response);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(document.GetProperty("paths").TryGetProperty("/api/v1/products", out _));
+    }
+
     private async Task<Guid> CreateCategoryAsync()
     {
         using var response = await _client.PostAsJsonAsync("/api/v1/categories", new { name = $"Category-{Guid.NewGuid():N}" });

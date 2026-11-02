@@ -3,7 +3,8 @@ using CatalogService.Application;
 using CatalogService.Domain;
 using CatalogService.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Options;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.OpenApi.Writers;
 using Swashbuckle.AspNetCore.Swagger;
 
@@ -38,12 +39,12 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 builder.Services.AddSwaggerGen(options =>
 {
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CatalogService.Api.xml"));
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CatalogService.Application.xml"), true);
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CatalogService.Domain.xml"), true);
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog Service API", Version = "v1" });
 });
 
 var app = builder.Build();

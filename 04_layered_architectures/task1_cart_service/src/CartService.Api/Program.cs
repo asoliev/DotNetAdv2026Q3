@@ -2,9 +2,10 @@ using Asp.Versioning.ApiExplorer;
 using CartService.Bll;
 using CartService.Dal;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Writers;
 using Swashbuckle.AspNetCore.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 var isOpenApiGeneration = args.Length == 2 && args[0] == "--generate-openapi";
 var builder = WebApplication.CreateBuilder(isOpenApiGeneration ? Array.Empty<string>() : args);
@@ -35,12 +36,11 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 builder.Services.AddSwaggerGen(options =>
 {
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CartService.Api.xml"));
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CartService.Bll.xml"), true);
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Cart Service API", Version = "v1" });
-    options.SwaggerDoc("v2", new OpenApiInfo { Title = "Cart Service API", Version = "v2" });
 });
 
 var app = builder.Build();

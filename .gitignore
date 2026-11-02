@@ -259,6 +259,11 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 
+# Local SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
 # macOS metadata and local editor backups
 .DS_Store
 *.drawio.bkp

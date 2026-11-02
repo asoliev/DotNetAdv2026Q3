@@ -92,6 +92,16 @@ public sealed class CartsApiTests : IClassFixture<CartApiFactory>
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("/swagger/v1/swagger.json")]
+    [InlineData("/swagger/v2/swagger.json")]
+    public async Task SwaggerDocument_IsAvailableForEachApiVersion(string path)
+    {
+        using var response = await _client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     private Task<HttpResponseMessage> AddItemAsync(string cartKey)
     {
         return _client.PostAsJsonAsync($"/api/v1/carts/{cartKey}/items", new
