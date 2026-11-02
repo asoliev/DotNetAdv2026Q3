@@ -31,6 +31,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+*.db
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -231,6 +232,10 @@ _pkginfo.txt
 *.[Cc]ache
 # but keep track of directories ending in .cache
 !?*.[Cc]ache/
+
+# JetBrains IDE metadata
+.idea/
+**/.idea/
 
 # Others
 ClientBin/
