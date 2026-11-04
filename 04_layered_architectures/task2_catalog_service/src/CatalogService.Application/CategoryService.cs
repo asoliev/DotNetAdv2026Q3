@@ -28,16 +28,21 @@ public sealed class CategoryService
         await _categoryRepository.AddAsync(category, cancellationToken);
     }
 
-    public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Category category, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(category);
         await ValidateParentCategoryAsync(category, cancellationToken);
-        await _categoryRepository.UpdateAsync(category, cancellationToken);
+        return await _categoryRepository.UpdateAsync(category, cancellationToken);
     }
 
-    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return _categoryRepository.DeleteAsync(id, cancellationToken);
+        if (await _categoryRepository.HasChildrenAsync(id, cancellationToken))
+        {
+            throw new ConflictException("Category has subcategories. Delete them first.");
+        }
+
+        return await _categoryRepository.DeleteWithProductsAsync(id, cancellationToken);
     }
 
     private async Task ValidateParentCategoryAsync(Category category, CancellationToken cancellationToken)
@@ -45,6 +50,11 @@ public sealed class CategoryService
         if (category.ParentCategoryId is null)
         {
             return;
+        }
+
+        if (category.ParentCategoryId == category.Id)
+        {
+            throw new InvalidOperationException("Category cannot be its own parent.");
         }
 
         if (!await _categoryRepository.ExistsAsync(category.ParentCategoryId.Value, cancellationToken))

@@ -57,7 +57,7 @@ public sealed class SqliteCategoryRepository : ICategoryRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(Category category, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Category category, CancellationToken cancellationToken = default)
     {
         using var connection = _database.CreateConnection();
         using var command = connection.CreateCommand();
@@ -70,16 +70,54 @@ public sealed class SqliteCategoryRepository : ICategoryRepository
             WHERE Id = $id;
             """;
         ApplyParameters(command, category);
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteWithProductsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        using var connection = _database.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using (var deleteProducts = connection.CreateCommand())
+        {
+            deleteProducts.Transaction = transaction;
+            deleteProducts.CommandText = "DELETE FROM Products WHERE CategoryId = $id";
+            deleteProducts.Parameters.AddWithValue("$id", id.ToString());
+            await deleteProducts.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        int affected;
+        using (var deleteCategory = connection.CreateCommand())
+        {
+            deleteCategory.Transaction = transaction;
+            deleteCategory.CommandText = "DELETE FROM Categories WHERE Id = $id";
+            deleteCategory.Parameters.AddWithValue("$id", id.ToString());
+            try
+            {
+                affected = await deleteCategory.ExecuteNonQueryAsync(cancellationToken);
+            }
+            catch (SqliteException exception) when (exception.SqliteErrorCode == 19)
+            {
+                throw new ConflictException("Category cannot be deleted while it has subcategories.");
+            }
+        }
+
+        if (affected == 0)
+        {
+            return false;
+        }
+
+        transaction.Commit();
+        return true;
+    }
+
+    public async Task<bool> HasChildrenAsync(Guid id, CancellationToken cancellationToken = default)
     {
         using var connection = _database.CreateConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM Categories WHERE Id = $id";
+        command.CommandText = "SELECT 1 FROM Categories WHERE ParentCategoryId = $id LIMIT 1";
         command.Parameters.AddWithValue("$id", id.ToString());
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        return await command.ExecuteScalarAsync(cancellationToken) is not null;
     }
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)

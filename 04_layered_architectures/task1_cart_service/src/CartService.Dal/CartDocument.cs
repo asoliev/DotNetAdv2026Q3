@@ -5,7 +5,7 @@ namespace CartService.Dal;
 public sealed class CartDocument
 {
     [BsonId]
-    public Guid Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     public List<CartItemDocument> Items { get; set; } = new();
 }
