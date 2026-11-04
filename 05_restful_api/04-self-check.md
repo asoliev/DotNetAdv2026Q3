@@ -29,12 +29,67 @@ _Questions for the self-check:_
 	- Example: Swagger UI can be generated from controllers, while a hand-written section may explain an unusual business rule like a payment cutoff.
 
 8. What is OData? When will you choose to follow it and when not?
-	- Answer: OData is a REST-adjacent protocol and query standard that adds rich querying, filtering, sorting, paging, and metadata conventions. It is useful for data-heavy APIs where clients need flexible server-side querying. It is usually a bad fit for small, simple, or tightly controlled public APIs because it adds complexity and broadens the surface area.
-	- Example: A reporting API may benefit from OData-like filters, while a simple cart service usually does not.
+	- Answer: OData (Open Data Protocol) is a standardized way to expose and query data over HTTP. Alongside ordinary resource operations, it defines conventions for query options, metadata, and representations, so clients can discover a schema and ask the server for selected or related data. Common query options include `$filter` (restrict rows), `$select` (choose fields), `$orderby` (sort), `$top` and `$skip` (page), and `$expand` (include related resources). For example, `GET /Products?$filter=Price gt 50&$orderby=Name&$top=10&$select=Id,Name,Price` asks for the first ten matching products with only those fields. The service still needs to validate and authorize queries, limit expensive operations and page sizes, and avoid exposing fields or relationships clients should not access.
+	- Choose OData when the API serves data-oriented use cases—such as reporting, analytics, or enterprise applications—with multiple clients that need flexible, server-side filtering and projection. Its standard conventions can reduce the need to invent a different query language for every endpoint. Avoid it when the API has a small set of fixed operations, requires carefully curated response shapes, or has a workflow-oriented domain (for example, placing an order); in those cases, explicit endpoints are often easier to secure, document, optimize, and evolve. OData's flexibility comes with implementation, performance, security, and learning costs, and clients may become coupled to the exposed data model.
+	- Detailed example: An authorized reporting client wants the two most recent open orders worth at least 100, with only each order's ID, date, total, and the customer's name. It can request:
+
+		`GET /odata/Orders?$filter=Status eq 'Open' and Total ge 100&$select=Id,CreatedAt,Total&$expand=Customer($select=Name)&$orderby=CreatedAt desc&$top=2&$skip=0&$count=true`
+
+		Here, `$filter` selects matching orders, `$select` limits order fields, `$expand` includes the related customer but only its name, `$orderby` sorts newest first, `$top` and `$skip` page the results, and `$count=true` asks for the total number of matches. A simplified OData JSON response might look like:
+
+		```json
+		{
+		  "@odata.context": "/odata/$metadata#Orders(Id,CreatedAt,Total,Customer(Name))",
+		  "@odata.count": 18,
+		  "value": [
+		    {
+		      "Id": 731,
+		      "CreatedAt": "2026-10-28T14:30:00Z",
+		      "Total": 245.50,
+		      "Customer": { "Name": "Northwind Market" }
+		    },
+		    {
+		      "Id": 728,
+		      "CreatedAt": "2026-10-27T09:15:00Z",
+		      "Total": 125.00,
+		      "Customer": { "Name": "Contoso Retail" }
+		    }
+		  ],
+		  "@odata.nextLink": "/odata/Orders?$skip=2&..."
+		}
+		```
+
+		The `@odata.nextLink` gives the client a continuation URL for the next page; the client should follow that URL rather than manually constructing it. In a real service, allow only supported query options and fields, cap page sizes, and consider the cost of filters and expansions. A shopping-cart API is usually clearer with explicit operations such as `POST /carts/{id}/items` than with arbitrary client-built data queries.
 
 9. What is Richardson Maturity Model? Is it always a good idea to reach the 3rd level of maturity?
-	- Answer: The Richardson Maturity Model describes REST maturity in four levels: Level 0 uses one endpoint like RPC, Level 1 introduces resources, Level 2 uses proper HTTP verbs and status codes, and Level 3 adds hypermedia controls. Reaching Level 3 is not always necessary; many APIs are perfectly good at Level 2, and hypermedia can add complexity without enough value for the use case.
-	- Example: A well-designed `/products/{id}` API with correct verbs and status codes can be strong Level 2 even without HATEOAS links.
+	- Answer: The Richardson Maturity Model (RMM), popularized by Leonard Richardson, is a way to discuss how an HTTP API uses REST-related ideas. Level 0 is a single endpoint and a single interaction style, often resembling RPC over HTTP. Level 1 introduces separate resources and resource identifiers. Level 2 uses HTTP methods and status codes according to their semantics—for instance, `GET` to retrieve, `POST` to create, and `404 Not Found` when a resource is missing. Level 3 adds hypermedia controls: responses include links or other controls that tell clients which actions or transitions are currently available. The levels are a useful conceptual model, not a compliance checklist or a measure of overall API quality; security, consistency, usability, and documentation matter at every level.
+	- Level 3 is not automatically the right target. Hypermedia can let clients discover next actions and reduce hard-coded workflow assumptions, which is valuable when workflows or available actions vary over time. But it requires a representation format and client conventions that both sides understand, and many teams and tools do not need or support that extra indirection. If clients already know a stable set of routes and the API has straightforward operations, a well-designed Level 2 API may be the clearer, cheaper choice. Choose Level 3 when discoverable, evolving workflows provide concrete value—not just to claim a higher maturity level.
+	- Examples using an order API:
+		- **Level 0 — one endpoint / RPC-style:** The client sends `POST /api` with `{"action":"getOrder","orderId":42}`. The endpoint and HTTP method stay the same while the action is encoded in the request body.
+		- **Level 1 — resources:** The API gives orders their own URIs, such as `POST /orders/42` to address order 42, but may still use `POST` for different operations rather than applying HTTP methods consistently.
+		- **Level 2 — HTTP methods and status codes:** The client retrieves an order with `GET /orders/42` and receives `200 OK` (or `404 Not Found` if it does not exist). It can request cancellation with `POST /orders/42/cancel`, receiving an appropriate response such as `200 OK` or `409 Conflict` if the order can no longer be canceled.
+		- **Level 3 — hypermedia controls (HATEOAS):** HATEOAS means **Hypermedia as the Engine of Application State**. The response does more than return the order's current state: it also advertises relevant links and actions, using relationship names such as `self`, `payment`, or `cancel`. The client reads those controls and follows the one appropriate to its goal, rather than constructing the next URL from a route pattern or assuming every operation is available. For example, a pending order might be represented in a Siren-style format like this:
+
+			```json
+			{
+			  "class": ["order"],
+			  "properties": { "id": 42, "status": "pending", "total": 49.99 },
+			  "links": [
+			    { "rel": ["self"], "href": "/orders/42" },
+			    { "rel": ["payment"], "href": "/orders/42/payment" }
+			  ],
+			  "actions": [
+			    {
+			      "name": "cancel",
+			      "title": "Cancel this order",
+			      "method": "POST",
+			      "href": "/orders/42/cancel"
+			    }
+			  ]
+			}
+			```
+
+			The client can display or invoke the advertised `cancel` action using its supplied method and URL. If the order has already shipped, the server can return a representation without that action and instead advertise relevant next steps, such as tracking. This makes the available workflow discoverable and lets the server change link destinations or allowed transitions without requiring clients to hard-code them. The media type and action conventions still need to be documented and supported by clients; hypermedia does not eliminate the need for shared semantics.
 
 10. What does pros and cons REST have in comparison with other web API types?
 	- Answer: REST is simple, cache-friendly, widely supported, and good for resource-oriented CRUD and public HTTP APIs. Compared with RPC or gRPC, it is usually less efficient for highly chatty or strongly typed internal service calls. Compared with GraphQL, it is simpler to cache and reason about, but less flexible for clients that need custom-shaped responses. Compared with message-based APIs, it is easier for synchronous request/response flows, but less suitable for event-driven workflows.
